@@ -36,6 +36,8 @@ export class Root {
     this._setupWatchers();
 
     this.uiContainer = new Container();
+    this.uiContainer.sortableChildren = true;
+
     this._fpsCounter = new FPSCounter();
   }
 

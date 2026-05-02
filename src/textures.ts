@@ -1,4 +1,5 @@
 import { Container, Graphics, Texture } from "pixi.js";
+import { TextureName } from "./types/TextureName";
 
 const WHITE = 0xffffff;
 
@@ -20,12 +21,26 @@ function renderSquare(
   graphics.rect(0, 0, side, side).fill(WHITE);
 }
 
-type TextureRenderFunction = (container: Container) => Texture;
+function renderTriangle(
+  graphics: Graphics,
+  maxWidth: number,
+  maxHeight: number,
+): void {
+  const ratio = Math.sqrt(3) / 2;
+  const side = Math.min(maxWidth, maxHeight / ratio);
+  const height = side * ratio;
 
-export enum TextureName {
-  CIRCLE = "circle",
-  SQUARE = "square",
+  // Equilateral triangle
+  graphics
+    .poly([
+      ...[side / 2, 0], // Top center
+      ...[0, height], // Bottom left
+      ...[side, height], // Bottom right
+    ])
+    .fill(WHITE);
 }
+
+type TextureRenderFunction = (container: Container) => Texture;
 
 export type TextureCache = Record<TextureName, Texture>;
 
@@ -44,6 +59,10 @@ function _generateTextures(
 
   renderSquare(graphics, maxWidth, maxHeight);
   cache[TextureName.SQUARE] = renderTextureFn(graphics);
+  graphics.clear();
+
+  renderTriangle(graphics, maxWidth, maxHeight);
+  cache[TextureName.TRIANGLE] = renderTextureFn(graphics);
   // graphics.clear();
 
   graphics.destroy();

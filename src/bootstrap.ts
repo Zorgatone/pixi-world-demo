@@ -1,6 +1,11 @@
+import { Container, Sprite } from "pixi.js";
+
 import { Root } from "./Root";
-import { Shape } from "./Shape";
-import { generateTextures, TextureName } from "./textures";
+import { generateTextures, TextureCache } from "./textures";
+import { ShapeObj } from "./types/ShapeObj";
+import { hashSeed } from "./utils/hashSeed";
+import { createPrng } from "./utils/prng";
+import { randShapeObj } from "./utils/randShapeObj";
 
 const MAX_SCALE = 4;
 const MAX_WIDTH = 200 * MAX_SCALE;
@@ -20,35 +25,70 @@ async function setupRoot(): Promise<Root> {
   return root;
 }
 
-function setupScene(root: Root): void {
+function generateData(): ShapeObj[] {
+  const params = new URLSearchParams(window.location.search);
+  const seed = params.get("seed") || "seed";
+
+  const random = createPrng(hashSeed(seed));
+  const nextShapeObj = () => randShapeObj(random);
+
+  const data = new Array<ShapeObj>(5);
+
+  for (let i = 0, len = data.length; i < len; i += 1) {
+    data[i] = nextShapeObj();
+  }
+
+  return data;
+}
+
+function makeTextures(root: Root): Readonly<TextureCache> {
   const app = root.app;
 
-  const textures = generateTextures(
+  return generateTextures(
     app.renderer.generateTexture.bind(app.renderer),
     MAX_WIDTH,
     MAX_HEIGHT,
   );
+}
 
-  const radius = 100;
-  const diameter = radius * 2;
-  const squareSide = radius * Math.sqrt(Math.PI);
+function setupScene(
+  root: Root,
+  textureCache: Readonly<TextureCache>,
+  data: ShapeObj[],
+): Container {
+  const shapesContainer = new Container();
 
-  const circle = new Shape();
-  circle.init(TextureName.CIRCLE, textures, diameter, diameter, 0xda2299);
-  circle.view.position.set(140, 140);
-  circle.view.rotation = Math.PI / 4;
+  let x = 300;
+  let y = 300;
 
-  const square = new Shape();
-  square.init(TextureName.SQUARE, textures, squareSide, squareSide, 0x9922da);
-  square.view.position.set(340, 340);
-  square.view.rotation = Math.PI / 4;
+  for (let i = 0, len = data.length; i < len; i += 1) {
+    const config = data[i];
 
-  root.worldContainer.addChild(circle.view);
-  root.worldContainer.addChild(square.view);
+    const sprite = new Sprite(textureCache[config.kind]);
+
+    sprite.anchor.set(0.5, 0.5);
+    sprite.tint = config.color;
+    sprite.scale.set(config.scale / (4 * window.devicePixelRatio));
+    sprite.position.set(x, y);
+    sprite.rotation = config.rotation;
+
+    shapesContainer.addChild(sprite);
+
+    x += sprite.width + 100;
+    y += sprite.height + 100;
+    // TODO: keep the sprite class to manage state later
+  }
+
+  root.worldContainer.addChild(shapesContainer);
+
+  return shapesContainer;
 }
 
 export async function bootstrap(): Promise<void> {
   const root = await setupRoot();
 
-  setupScene(root);
+  const data = generateData();
+  const textures = makeTextures(root);
+
+  setupScene(root, textures, data);
 }

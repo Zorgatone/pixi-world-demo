@@ -22,6 +22,8 @@ export class FPSCounter {
 
     this.view.x = 10;
     this.view.y = 10;
+    this.view.zIndex = 9999;
+    this.view.eventMode = "none";
   }
 
   public reset(): void {
