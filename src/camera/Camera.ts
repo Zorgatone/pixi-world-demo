@@ -74,6 +74,14 @@ export class Camera {
     return this._targetZoom;
   }
 
+  public get viewportWidth(): number {
+    return this._viewportWidth;
+  }
+
+  public get viewportHeight(): number {
+    return this._viewportHeight;
+  }
+
   public resize(width: number, height: number): void {
     this._viewportWidth = Math.max(1, width);
     this._viewportHeight = Math.max(1, height);

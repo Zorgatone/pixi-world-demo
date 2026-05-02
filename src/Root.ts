@@ -3,7 +3,9 @@ import { Application, Container, Ticker } from "pixi.js";
 import { Camera } from "./camera/Camera";
 import { CameraControls } from "./camera/CameraControls";
 import { MAX_ZOOM, MIN_ZOOM, WORLD_HEIGHT, WORLD_WIDTH } from "./constants";
+import { CameraInfo } from "./ui/CameraInfo";
 import { FPSCounter } from "./ui/FPSCounter";
+import { WorldGrid } from "./ui/WorldGrid";
 import { watchPixelRatio } from "./utils/watchPixelRatio";
 
 enum InitState {
@@ -20,7 +22,9 @@ export class Root {
   public readonly uiContainer: Container;
   public readonly worldContainer: Container;
   private _cameraControls?: CameraControls;
+  private _cameraInfo: CameraInfo;
   private _fpsCounter: FPSCounter;
+  private _worldGrid: WorldGrid;
   private _initState: InitState;
   private _currentResolution: number;
   private _initPromise?: undefined | Promise<void>;
@@ -46,10 +50,12 @@ export class Root {
       minZoom: MIN_ZOOM,
       maxZoom: MAX_ZOOM,
     });
+    this._worldGrid = new WorldGrid();
 
     this.uiContainer = new Container();
     this.uiContainer.sortableChildren = true;
 
+    this._cameraInfo = new CameraInfo(this.camera);
     this._fpsCounter = new FPSCounter();
   }
 
@@ -92,7 +98,9 @@ export class Root {
     this.app.stage.addChild(this.worldContainer);
     this.app.stage.addChild(this.uiContainer);
 
+    this.uiContainer.addChild(this._worldGrid.view);
     this.uiContainer.addChild(this._fpsCounter.view);
+    this.uiContainer.addChild(this._cameraInfo.view);
     this._fpsCounter.reset();
 
     this._setupWatchers(domElement);
@@ -106,6 +114,8 @@ export class Root {
     this._cameraControls?.update(ticker.deltaMS);
     this.camera.update(ticker.deltaMS);
     this._fpsCounter.tick();
+    this._cameraInfo.tick(ticker.deltaMS);
+    this._worldGrid.tick(this.camera, this.app.renderer.resolution);
   }
 
   private _setupWatchers(domElement: HTMLElement): void {

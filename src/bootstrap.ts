@@ -109,8 +109,8 @@ function setupScene(
 ): Container {
   const shapesContainer = new Container();
 
-  // TODO: at some point later I'll remove the limit to 20
-  for (let i = 0, len = Math.min(20, data.length); i < len; i += 1) {
+  // TODO: at some point later I'll remove the limit to 10000
+  for (let i = 0, len = Math.min(10000, data.length); i < len; i += 1) {
     const config = data[i];
 
     const sprite = new Sprite(textureCache[config.kind]);
@@ -129,10 +129,7 @@ function setupScene(
 
   root.worldContainer.addChild(shapesContainer);
 
-  if (data.length > 0) {
-    // TODO: I will remove this test position, just checking the rendering
-    root.camera.jumpTo(data[0].x, data[0].y);
-  }
+  root.camera.jumpTo(WORLD_WIDTH / 2, WORLD_HEIGHT / 2);
 
   return shapesContainer;
 }

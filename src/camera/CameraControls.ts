@@ -6,10 +6,15 @@ const KEYBOARD_PAN_SPEED = 900;
 const KEYBOARD_ZOOM_FACTOR = 1.08;
 const WHEEL_ZOOM_SPEED = 0.0015;
 const LINE_HEIGHT_PX = 16;
+const VELOCITY_SAMPLE_WEIGHT = 0.35;
+const FLING_DECAY_RATE = 4.8;
+const MIN_FLING_SPEED = 8;
+const MAX_FLING_SPEED = 3600;
 
 interface PointerState {
   x: number;
   y: number;
+  pointerType: string;
 }
 
 export class CameraControls {
@@ -20,9 +25,15 @@ export class CameraControls {
   private _activePointerId?: number;
   private _lastPointerX: number;
   private _lastPointerY: number;
+  private _lastPointerTime: number;
+  private _dragVelocityX: number;
+  private _dragVelocityY: number;
+  private _flingVelocityX: number;
+  private _flingVelocityY: number;
   private _pinchDistance?: number;
   private _pinchCenterX: number;
   private _pinchCenterY: number;
+  private _didPinch: boolean;
 
   public constructor(app: Application, camera: Camera) {
     this._app = app;
@@ -31,13 +42,19 @@ export class CameraControls {
     this._pointers = new Map();
     this._lastPointerX = 0;
     this._lastPointerY = 0;
+    this._lastPointerTime = 0;
+    this._dragVelocityX = 0;
+    this._dragVelocityY = 0;
+    this._flingVelocityX = 0;
+    this._flingVelocityY = 0;
     this._pinchCenterX = 0;
     this._pinchCenterY = 0;
+    this._didPinch = false;
 
     this._app.canvas.addEventListener("pointerdown", this._onPointerDown);
     this._app.canvas.addEventListener("pointermove", this._onPointerMove);
     this._app.canvas.addEventListener("pointerup", this._onPointerUp);
-    this._app.canvas.addEventListener("pointercancel", this._onPointerUp);
+    this._app.canvas.addEventListener("pointercancel", this._onPointerCancel);
     this._app.canvas.addEventListener("wheel", this._onWheel, {
       passive: false,
     });
@@ -49,13 +66,18 @@ export class CameraControls {
     this._app.canvas.removeEventListener("pointerdown", this._onPointerDown);
     this._app.canvas.removeEventListener("pointermove", this._onPointerMove);
     this._app.canvas.removeEventListener("pointerup", this._onPointerUp);
-    this._app.canvas.removeEventListener("pointercancel", this._onPointerUp);
+    this._app.canvas.removeEventListener(
+      "pointercancel",
+      this._onPointerCancel,
+    );
     this._app.canvas.removeEventListener("wheel", this._onWheel);
     window.removeEventListener("keydown", this._onKeyDown);
     window.removeEventListener("keyup", this._onKeyUp);
   }
 
   public update(deltaMs: number): void {
+    this._updateFling(deltaMs);
+
     let x = 0;
     let y = 0;
 
@@ -79,6 +101,8 @@ export class CameraControls {
       return;
     }
 
+    this._stopFling();
+
     const length = Math.hypot(x, y);
     const distance = KEYBOARD_PAN_SPEED * (deltaMs / 1000);
 
@@ -90,15 +114,22 @@ export class CameraControls {
       return;
     }
 
+    this._stopFling();
     this._activePointerId = event.pointerId;
     const point = this._getCanvasPoint(event);
 
     this._pointers.set(event.pointerId, point);
     this._lastPointerX = point.x;
     this._lastPointerY = point.y;
+    this._lastPointerTime = performance.now();
+    this._dragVelocityX = 0;
+    this._dragVelocityY = 0;
 
     if (this._pointers.size >= 2) {
+      this._didPinch = true;
       this._startPinch();
+    } else {
+      this._didPinch = false;
     }
 
     this._app.canvas.setPointerCapture(event.pointerId);
@@ -126,14 +157,18 @@ export class CameraControls {
 
     const deltaX = point.x - this._lastPointerX;
     const deltaY = point.y - this._lastPointerY;
+    const now = performance.now();
 
     this._lastPointerX = point.x;
     this._lastPointerY = point.y;
+    this._sampleDragVelocity(deltaX, deltaY, now);
     this._camera.panByScreen(deltaX, deltaY);
     event.preventDefault();
   };
 
   private readonly _onPointerUp = (event: PointerEvent): void => {
+    const pointer = this._pointers.get(event.pointerId);
+
     this._pointers.delete(event.pointerId);
 
     if (this._app.canvas.hasPointerCapture(event.pointerId)) {
@@ -152,15 +187,38 @@ export class CameraControls {
       this._activePointerId = remainingPointerId;
       this._lastPointerX = remainingPointer.x;
       this._lastPointerY = remainingPointer.y;
+      this._lastPointerTime = performance.now();
+      this._dragVelocityX = 0;
+      this._dragVelocityY = 0;
+      this._didPinch = true;
     } else if (this._pointers.size === 0) {
       this._activePointerId = undefined;
+      this._startFling(pointer);
     }
 
     this._pinchDistance = undefined;
     event.preventDefault();
   };
 
+  private readonly _onPointerCancel = (event: PointerEvent): void => {
+    this._pointers.delete(event.pointerId);
+
+    if (this._app.canvas.hasPointerCapture(event.pointerId)) {
+      this._app.canvas.releasePointerCapture(event.pointerId);
+    }
+
+    if (this._pointers.size === 0) {
+      this._activePointerId = undefined;
+      this._pinchDistance = undefined;
+      this._didPinch = false;
+      this._dragVelocityX = 0;
+      this._dragVelocityY = 0;
+    }
+  };
+
   private readonly _onWheel = (event: WheelEvent): void => {
+    this._stopFling();
+
     const point = this._getCanvasPoint(event);
     const deltaY = this._normalizeWheelDelta(event);
     const factor = Math.exp(-deltaY * WHEEL_ZOOM_SPEED);
@@ -203,6 +261,8 @@ export class CameraControls {
   }
 
   private _startPinch(): void {
+    this._stopFling();
+
     const pinch = this._getPinch();
 
     if (!pinch) {
@@ -215,6 +275,8 @@ export class CameraControls {
   }
 
   private _updatePinch(): void {
+    this._didPinch = true;
+
     const pinch = this._getPinch();
 
     if (!pinch) {
@@ -265,7 +327,76 @@ export class CameraControls {
     return {
       x: event.clientX - bounds.left,
       y: event.clientY - bounds.top,
+      pointerType: "pointerType" in event ? event.pointerType : "wheel",
     };
+  }
+
+  private _sampleDragVelocity(
+    deltaX: number,
+    deltaY: number,
+    now: number,
+  ): void {
+    const deltaSeconds = Math.max(0.001, (now - this._lastPointerTime) / 1000);
+    const velocityX = deltaX / deltaSeconds;
+    const velocityY = deltaY / deltaSeconds;
+
+    this._lastPointerTime = now;
+    this._dragVelocityX =
+      this._dragVelocityX * (1 - VELOCITY_SAMPLE_WEIGHT) +
+      velocityX * VELOCITY_SAMPLE_WEIGHT;
+    this._dragVelocityY =
+      this._dragVelocityY * (1 - VELOCITY_SAMPLE_WEIGHT) +
+      velocityY * VELOCITY_SAMPLE_WEIGHT;
+  }
+
+  private _startFling(pointer: PointerState | undefined): void {
+    if (!pointer || this._didPinch) {
+      this._didPinch = false;
+      return;
+    }
+
+    const worldVelocityX = -this._dragVelocityX / this._camera.targetZoom;
+    const worldVelocityY = -this._dragVelocityY / this._camera.targetZoom;
+    const speed = Math.hypot(worldVelocityX, worldVelocityY);
+
+    this._didPinch = false;
+
+    if (speed < MIN_FLING_SPEED) {
+      this._stopFling();
+      return;
+    }
+
+    const scale = Math.min(1, MAX_FLING_SPEED / speed);
+
+    this._flingVelocityX = worldVelocityX * scale;
+    this._flingVelocityY = worldVelocityY * scale;
+    this._dragVelocityX = 0;
+    this._dragVelocityY = 0;
+  }
+
+  private _updateFling(deltaMs: number): void {
+    const deltaSeconds = Math.max(0, deltaMs) / 1000;
+    const speed = Math.hypot(this._flingVelocityX, this._flingVelocityY);
+
+    if (speed < MIN_FLING_SPEED || deltaSeconds <= 0) {
+      this._stopFling();
+      return;
+    }
+
+    this._camera.panByWorld(
+      this._flingVelocityX * deltaSeconds,
+      this._flingVelocityY * deltaSeconds,
+    );
+
+    const decay = Math.exp(-FLING_DECAY_RATE * deltaSeconds);
+
+    this._flingVelocityX *= decay;
+    this._flingVelocityY *= decay;
+  }
+
+  private _stopFling(): void {
+    this._flingVelocityX = 0;
+    this._flingVelocityY = 0;
   }
 
   private _normalizeWheelDelta(event: WheelEvent): number {
