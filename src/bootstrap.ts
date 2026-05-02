@@ -6,10 +6,7 @@ import { ShapeObj } from "./types/ShapeObj";
 import { hashSeed } from "./utils/hashSeed";
 import { createPrng } from "./utils/prng";
 import { randShapeObj } from "./utils/randShapeObj";
-
-const MAX_SCALE = 4;
-const MAX_WIDTH = 200 * MAX_SCALE;
-const MAX_HEIGHT = MAX_WIDTH;
+import { MAX_OBJECT_SIZE } from "./constants";
 
 async function setupRoot(): Promise<Root> {
   const pixiContainer = document.getElementById("pixi-container");
@@ -44,11 +41,7 @@ function generateData(): ShapeObj[] {
 function makeTextures(root: Root): Readonly<TextureCache> {
   const app = root.app;
 
-  return generateTextures(
-    app.renderer.generateTexture.bind(app.renderer),
-    MAX_WIDTH,
-    MAX_HEIGHT,
-  );
+  return generateTextures(app.renderer.generateTexture.bind(app.renderer));
 }
 
 function setupScene(
@@ -57,6 +50,8 @@ function setupScene(
   data: ShapeObj[],
 ): Container {
   const shapesContainer = new Container();
+
+  // TODO: remove test shapes and do proper random positions of 1000k elements
 
   let x = 300;
   let y = 300;
@@ -68,15 +63,17 @@ function setupScene(
 
     sprite.anchor.set(0.5, 0.5);
     sprite.tint = config.color;
-    sprite.scale.set(config.scale / (4 * window.devicePixelRatio));
+    sprite.scale.set(
+      config.width / sprite.texture.width,
+      config.height / sprite.texture.height,
+    );
     sprite.position.set(x, y);
     sprite.rotation = config.rotation;
 
     shapesContainer.addChild(sprite);
 
-    x += sprite.width + 100;
-    y += sprite.height + 100;
-    // TODO: keep the sprite class to manage state later
+    x += sprite.width + MAX_OBJECT_SIZE;
+    y += sprite.height + MAX_OBJECT_SIZE;
   }
 
   root.worldContainer.addChild(shapesContainer);

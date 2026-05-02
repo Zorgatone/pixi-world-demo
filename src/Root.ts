@@ -1,5 +1,8 @@
-import { Application, Container } from "pixi.js";
+import { Application, Container, Ticker } from "pixi.js";
 
+import { Camera } from "./camera/Camera";
+import { CameraControls } from "./camera/CameraControls";
+import { MAX_ZOOM, MIN_ZOOM, WORLD_HEIGHT, WORLD_WIDTH } from "./constants";
 import { FPSCounter } from "./ui/FPSCounter";
 import { watchPixelRatio } from "./utils/watchPixelRatio";
 
@@ -13,27 +16,36 @@ enum InitState {
 export class Root {
   public readonly app: Application;
 
+  public readonly camera: Camera;
   public readonly uiContainer: Container;
   public readonly worldContainer: Container;
+  private _cameraControls?: CameraControls;
   private _fpsCounter: FPSCounter;
   private _initState: InitState;
   private _currentResolution: number;
   private _initPromise?: undefined | Promise<void>;
   private _resizePromise?: undefined | Promise<void>;
+  private _viewportElement?: HTMLElement;
+  private _resizeObserver?: ResizeObserver;
+  private _queuedViewportUpdate?: number;
 
   public constructor() {
     this._onResolutionChanged = this._onResolutionChanged.bind(this);
     this._updateResolution = this._updateResolution.bind(this);
+    this._queueViewportUpdate = this._queueViewportUpdate.bind(this);
+    this._updateViewport = this._updateViewport.bind(this);
 
     this._currentResolution = devicePixelRatio;
     this._initState = InitState.UNINITIALIZED;
     this.app = new Application();
 
     this.worldContainer = new Container();
-
-    this._resizeWorldContainer();
-
-    this._setupWatchers();
+    this.camera = new Camera(this.worldContainer, {
+      maxX: WORLD_WIDTH,
+      maxY: WORLD_HEIGHT,
+      minZoom: MIN_ZOOM,
+      maxZoom: MAX_ZOOM,
+    });
 
     this.uiContainer = new Container();
     this.uiContainer.sortableChildren = true;
@@ -83,17 +95,22 @@ export class Root {
     this.uiContainer.addChild(this._fpsCounter.view);
     this._fpsCounter.reset();
 
-    this._resizeWorldContainer();
+    this._setupWatchers(domElement);
+    this._cameraControls = new CameraControls(this.app, this.camera);
+    this._updateViewport();
 
     this.app.ticker.add(this._tick, this);
   }
 
-  private _tick(): void {
+  private _tick(ticker: Ticker): void {
+    this._cameraControls?.update(ticker.deltaMS);
+    this.camera.update(ticker.deltaMS);
     this._fpsCounter.tick();
   }
 
-  private _setupWatchers(): void {
+  private _setupWatchers(domElement: HTMLElement): void {
     this._watchResolution();
+    this._watchViewport(domElement);
   }
 
   private _watchResolution(): void {
@@ -129,12 +146,48 @@ export class Root {
     );
 
     this.app.renderer.resolution = this._currentResolution;
-    this.app.resize();
-
-    this._resizeWorldContainer();
+    this._updateViewport();
   }
 
-  private _resizeWorldContainer(): void {
-    this.worldContainer.scale.set(1 / this._currentResolution);
+  private _watchViewport(domElement: HTMLElement): void {
+    this._viewportElement = domElement;
+    this._resizeObserver = new ResizeObserver(this._queueViewportUpdate);
+    this._resizeObserver.observe(domElement);
+
+    window.addEventListener("resize", this._queueViewportUpdate, {
+      passive: true,
+    });
+    window.addEventListener("orientationchange", this._queueViewportUpdate, {
+      passive: true,
+    });
+    window.visualViewport?.addEventListener(
+      "resize",
+      this._queueViewportUpdate,
+      {
+        passive: true,
+      },
+    );
+  }
+
+  private _queueViewportUpdate(): void {
+    if (typeof this._queuedViewportUpdate !== "undefined") {
+      return;
+    }
+
+    this._queuedViewportUpdate = requestAnimationFrame(this._updateViewport);
+  }
+
+  private _updateViewport(): void {
+    delete this._queuedViewportUpdate;
+
+    if (this._initState !== InitState.INIT_SUCCESS || !this._viewportElement) {
+      return;
+    }
+
+    this.app.resize();
+
+    const screen = this.app.renderer.screen;
+
+    this.camera.resize(screen.width, screen.height);
   }
 }
