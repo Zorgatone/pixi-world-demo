@@ -1,4 +1,4 @@
-import { Text, TextStyle, Ticker } from "pixi.js";
+import { Text, TextStyle } from "pixi.js";
 
 export class FPSCounter {
   public readonly view: Text;
@@ -24,15 +24,13 @@ export class FPSCounter {
     this.view.y = 10;
   }
 
-  public start(ticker: Ticker): void {
+  public reset(): void {
     this._elapsed = 0;
     this._frames = 0;
     this._previousTime = performance.now();
-
-    ticker.add(this._tick, this);
   }
 
-  private _tick(): void {
+  public tick(): void {
     const now = performance.now();
     const deltaTimeMs = now - this._previousTime;
     this._previousTime = now;

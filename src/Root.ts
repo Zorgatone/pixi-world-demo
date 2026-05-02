@@ -1,5 +1,6 @@
-import { Application } from "pixi.js";
+import { Application, Container } from "pixi.js";
 
+import { FPSCounter } from "./ui/FPSCounter";
 import { watchPixelRatio } from "./utils/watchPixelRatio";
 
 enum InitState {
@@ -9,9 +10,12 @@ enum InitState {
   INIT_SUCCESS = 2,
 }
 
-export class World {
+export class Root {
   public readonly app: Application;
 
+  public readonly uiContainer: Container;
+  public readonly worldContainer: Container;
+  private _fpsCounter: FPSCounter;
   private _initState: InitState;
   private _currentResolution: number;
   private _initPromise?: undefined | Promise<void>;
@@ -25,7 +29,14 @@ export class World {
     this._initState = InitState.UNINITIALIZED;
     this.app = new Application();
 
+    this.worldContainer = new Container();
+
+    this._resizeWorldContainer();
+
     this._setupWatchers();
+
+    this.uiContainer = new Container();
+    this._fpsCounter = new FPSCounter();
   }
 
   public async init(domElement: HTMLElement): Promise<void> {
@@ -63,6 +74,20 @@ export class World {
     }
 
     domElement.appendChild(this.app.canvas);
+
+    this.app.stage.addChild(this.worldContainer);
+    this.app.stage.addChild(this.uiContainer);
+
+    this.uiContainer.addChild(this._fpsCounter.view);
+    this._fpsCounter.reset();
+
+    this._resizeWorldContainer();
+
+    this.app.ticker.add(this._tick, this);
+  }
+
+  private _tick(): void {
+    this._fpsCounter.tick();
   }
 
   private _setupWatchers(): void {
@@ -103,5 +128,11 @@ export class World {
 
     this.app.renderer.resolution = this._currentResolution;
     this.app.resize();
+
+    this._resizeWorldContainer();
+  }
+
+  private _resizeWorldContainer(): void {
+    this.worldContainer.scale.set(1 / this._currentResolution);
   }
 }

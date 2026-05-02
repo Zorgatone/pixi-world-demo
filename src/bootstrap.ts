@@ -1,32 +1,27 @@
-import { FPSCounter } from "./FPSCounter";
-import { generateTextures, TextureName } from "./textures";
-import { World } from "./World";
+import { Root } from "./Root";
 import { Shape } from "./Shape";
-import { Container } from "pixi.js";
-import { watchPixelRatio } from "./utils/watchPixelRatio";
+import { generateTextures, TextureName } from "./textures";
 
 const MAX_SCALE = 4;
 const MAX_WIDTH = 200 * MAX_SCALE;
 const MAX_HEIGHT = MAX_WIDTH;
 
-async function createWorld(): Promise<World> {
+async function setupRoot(): Promise<Root> {
   const pixiContainer = document.getElementById("pixi-container");
 
   if (!pixiContainer) {
     throw new Error("Could not find pixi-container DOM element!");
   }
 
-  const world = new World();
+  const root = new Root();
 
-  await world.init(pixiContainer);
+  await root.init(pixiContainer);
 
-  const fpsCounter = new FPSCounter();
+  return root;
+}
 
-  const app = world.app;
-
-  app.stage.addChild(fpsCounter.view);
-
-  fpsCounter.start(app.ticker);
+function setupScene(root: Root): void {
+  const app = root.app;
 
   const textures = generateTextures(
     app.renderer.generateTexture.bind(app.renderer),
@@ -48,71 +43,12 @@ async function createWorld(): Promise<World> {
   square.view.position.set(340, 340);
   square.view.rotation = Math.PI / 4;
 
-  const deviceScaleContainer = new Container();
-
-  deviceScaleContainer.addChild(circle.view);
-  deviceScaleContainer.addChild(square.view);
-
-  deviceScaleContainer.scale.set(1 / window.devicePixelRatio);
-
-  app.stage.addChild(deviceScaleContainer);
-
-  watchPixelRatio((ratio) => {
-    deviceScaleContainer.scale.set(1 / ratio);
-  });
-
-  return world;
+  root.worldContainer.addChild(circle.view);
+  root.worldContainer.addChild(square.view);
 }
 
-// function showLoading(
-//   container: Container,
-//   width: number,
-//   height: number,
-// ): void {
-//   const label = new Text({
-//     style: new TextStyle({
-//       fill: 0xffffff,
-//       fontSize: 32,
-//     }),
-//   });
-//   label.text = "Loading...";
-//   label.anchor.set(0.5);
-//   label.position.set(width / 2, height / 2);
-
-//   container.addChild(label);
-// }
-
 export async function bootstrap(): Promise<void> {
-  // const maxScale = 4;
+  const root = await setupRoot();
 
-  const app = await createWorld();
-
-  // showLoading(
-  //   app.stage,
-  //   app.canvas.width / window.devicePixelRatio,
-  //   app.canvas.height / window.devicePixelRatio,
-  // );
-
-  // const textures = generateTextures(
-  //   app.renderer.generateTexture.bind(app.renderer),
-  //   maxScale,
-  // );
-
-  // app.stage.removeChildren();
-
-  // const circle = new Sprite(textures[TextureName.CIRCLE]);
-  // circle.tint = 0xda2299;
-  // circle.scale.set(1 / resolution);
-  // circle.position.set(40, 40);
-
-  // const square = new Sprite(textures[TextureName.SQUARE]);
-  // square.tint = 0x9922da;
-  // square.scale.set(1 / resolution);
-  // square.position.set(280, 280);
-  // square.rotation = Math.PI / 4;
-
-  // app.stage.addChild(circle);
-  // app.stage.addChild(square);
-
-  void app;
+  setupScene(root);
 }
