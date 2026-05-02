@@ -10,14 +10,11 @@ export const randShapeObj = (random: () => number): ShapeObj => {
   const kind = randShapeKind(random);
   const rotation =
     kind === TextureName.CIRCLE ? 0 : randNum(random, 2 * Math.PI);
-  const boundsSize = randNum(random, MAX_OBJECT_SIZE, MIN_OBJECT_SIZE);
-  const rotationScale =
-    kind === TextureName.CIRCLE
-      ? 1
-      : Math.abs(Math.cos(rotation)) + Math.abs(Math.sin(rotation));
-  const size = boundsSize / rotationScale;
+  const size = randNum(random, MAX_OBJECT_SIZE, MIN_OBJECT_SIZE);
 
   return {
+    x: 0,
+    y: 0,
     kind: kind,
     color: randColor(random),
     width: size,
