@@ -15,6 +15,9 @@ export default tseslint.config(
       ecmaVersion: "latest",
       sourceType: "module",
     },
-    rules: {},
+    rules: {
+      "prettier/prettier": "warn",
+      "@typescript-eslint/no-unused-vars": "warn",
+    },
   },
 );
