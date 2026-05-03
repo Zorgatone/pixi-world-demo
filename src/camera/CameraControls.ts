@@ -2,7 +2,10 @@ import { Application } from "pixi.js";
 
 import { Camera } from "./Camera";
 
-const KEYBOARD_PAN_SPEED = 900;
+const KEYBOARD_PAN_MAX_SPEED = 900;
+const KEYBOARD_PAN_ACCELERATION = 2800;
+const KEYBOARD_PAN_DECELERATION = 4200;
+const MIN_KEYBOARD_PAN_SPEED = 1;
 const KEYBOARD_ZOOM_FACTOR = 1.08;
 const WHEEL_ZOOM_SPEED = 0.0015;
 const LINE_HEIGHT_PX = 16;
@@ -30,6 +33,8 @@ export class CameraControls {
   private _dragVelocityY: number;
   private _flingVelocityX: number;
   private _flingVelocityY: number;
+  private _keyboardVelocityX: number;
+  private _keyboardVelocityY: number;
   private _pinchDistance?: number;
   private _pinchCenterX: number;
   private _pinchCenterY: number;
@@ -47,6 +52,8 @@ export class CameraControls {
     this._dragVelocityY = 0;
     this._flingVelocityX = 0;
     this._flingVelocityY = 0;
+    this._keyboardVelocityX = 0;
+    this._keyboardVelocityY = 0;
     this._pinchCenterX = 0;
     this._pinchCenterY = 0;
     this._didPinch = false;
@@ -76,8 +83,19 @@ export class CameraControls {
   }
 
   public update(deltaMs: number): void {
-    this._updateFling(deltaMs);
+    const direction = this._getKeyboardPanDirection();
+    const hasKeyboardInput = direction.x !== 0 || direction.y !== 0;
 
+    if (hasKeyboardInput) {
+      this._stopFling();
+    } else {
+      this._updateFling(deltaMs);
+    }
+
+    this._updateKeyboardPan(deltaMs, direction);
+  }
+
+  private _getKeyboardPanDirection(): { x: number; y: number } {
     let x = 0;
     let y = 0;
 
@@ -97,16 +115,54 @@ export class CameraControls {
       y += 1;
     }
 
-    if (x === 0 && y === 0) {
+    return { x, y };
+  }
+
+  private _updateKeyboardPan(
+    deltaMs: number,
+    direction: { x: number; y: number },
+  ): void {
+    const deltaSeconds = Math.max(0, deltaMs) / 1000;
+
+    if (deltaSeconds <= 0) {
       return;
     }
 
-    this._stopFling();
+    const directionLength = Math.hypot(direction.x, direction.y);
+    const hasInput = directionLength > 0;
+    const targetVelocityX = hasInput
+      ? (direction.x / directionLength) * KEYBOARD_PAN_MAX_SPEED
+      : 0;
+    const targetVelocityY = hasInput
+      ? (direction.y / directionLength) * KEYBOARD_PAN_MAX_SPEED
+      : 0;
+    const maxDelta =
+      (hasInput ? KEYBOARD_PAN_ACCELERATION : KEYBOARD_PAN_DECELERATION) *
+      deltaSeconds;
 
-    const length = Math.hypot(x, y);
-    const distance = KEYBOARD_PAN_SPEED * (deltaMs / 1000);
+    this._keyboardVelocityX = this._approach(
+      this._keyboardVelocityX,
+      targetVelocityX,
+      maxDelta,
+    );
+    this._keyboardVelocityY = this._approach(
+      this._keyboardVelocityY,
+      targetVelocityY,
+      maxDelta,
+    );
 
-    this._camera.panByWorld((x / length) * distance, (y / length) * distance);
+    if (
+      Math.hypot(this._keyboardVelocityX, this._keyboardVelocityY) <
+      MIN_KEYBOARD_PAN_SPEED
+    ) {
+      this._stopKeyboardPan();
+      return;
+    }
+
+    this._camera.panByWorld(
+      this._keyboardVelocityX * deltaSeconds,
+      this._keyboardVelocityY * deltaSeconds,
+    );
   }
 
   private readonly _onPointerDown = (event: PointerEvent): void => {
@@ -115,6 +171,7 @@ export class CameraControls {
     }
 
     this._stopFling();
+    this._stopKeyboardPan();
     this._activePointerId = event.pointerId;
     const point = this._getCanvasPoint(event);
 
@@ -397,6 +454,21 @@ export class CameraControls {
   private _stopFling(): void {
     this._flingVelocityX = 0;
     this._flingVelocityY = 0;
+  }
+
+  private _stopKeyboardPan(): void {
+    this._keyboardVelocityX = 0;
+    this._keyboardVelocityY = 0;
+  }
+
+  private _approach(current: number, target: number, maxDelta: number): number {
+    const delta = target - current;
+
+    if (Math.abs(delta) <= maxDelta) {
+      return target;
+    }
+
+    return current + Math.sign(delta) * maxDelta;
   }
 
   private _normalizeWheelDelta(event: WheelEvent): number {
