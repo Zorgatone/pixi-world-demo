@@ -1,10 +1,10 @@
-import { Container, Sprite } from "pixi.js";
+import { Container } from "pixi.js";
 
 import { Root } from "./Root";
 import { generateTextures, TextureCache } from "./textures";
 import { ShapeObj } from "./types/ShapeObj";
 import {
-  MAX_OBJECT_SIZE,
+  MAX_ROTATED_OBJECT_SIZE,
   OBJECT_COUNT,
   SPAWN_CELL_SIZE,
   WORLD_HEIGHT,
@@ -14,15 +14,16 @@ import { hashSeed } from "./utils/hashSeed";
 import { createPrng } from "./utils/prng";
 import { randInt } from "./utils/randInt";
 import { randShapeObj } from "./utils/randShapeObj";
+import { ShapeRenderLayer } from "./world/ShapeRenderLayer";
 
 const SPAWN_GRID_COLUMNS = Math.floor(WORLD_WIDTH / SPAWN_CELL_SIZE);
 const SPAWN_GRID_ROWS = Math.floor(WORLD_HEIGHT / SPAWN_CELL_SIZE);
 const SPAWN_CELL_COUNT = SPAWN_GRID_COLUMNS * SPAWN_GRID_ROWS;
 
 function createSpawnCells(): Uint32Array {
-  if (MAX_OBJECT_SIZE > SPAWN_CELL_SIZE) {
+  if (MAX_ROTATED_OBJECT_SIZE > SPAWN_CELL_SIZE) {
     throw new Error(
-      "Spawn cell size must be at least equal to max object size!",
+      "Spawn cell size must be at least equal to max rotated object size!",
     );
   }
 
@@ -107,31 +108,17 @@ function setupScene(
   textureCache: Readonly<TextureCache>,
   data: ShapeObj[],
 ): Container {
-  const shapesContainer = new Container();
-
-  // TODO: at some point later I'll remove the limit to 10000
-  for (let i = 0, len = Math.min(10000, data.length); i < len; i += 1) {
-    const config = data[i];
-
-    const sprite = new Sprite(textureCache[config.kind]);
-
-    sprite.anchor.set(0.5, 0.5);
-    sprite.tint = config.color;
-    sprite.scale.set(
-      config.width / sprite.texture.width,
-      config.height / sprite.texture.height,
-    );
-    sprite.position.set(config.x, config.y);
-    sprite.rotation = config.rotation;
-
-    shapesContainer.addChild(sprite);
-  }
-
-  root.worldContainer.addChild(shapesContainer);
+  const shapeLayer = new ShapeRenderLayer(textureCache, data);
 
   root.camera.jumpTo(WORLD_WIDTH / 2, WORLD_HEIGHT / 2);
+  shapeLayer.tick(root.camera);
 
-  return shapesContainer;
+  root.worldContainer.addChild(shapeLayer.view);
+  root.app.ticker.add(() => {
+    shapeLayer.tick(root.camera);
+  });
+
+  return shapeLayer.view;
 }
 
 export async function bootstrap(): Promise<void> {
