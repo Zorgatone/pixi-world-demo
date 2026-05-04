@@ -67,6 +67,8 @@ export class CameraControls {
     });
     window.addEventListener("keydown", this._onKeyDown);
     window.addEventListener("keyup", this._onKeyUp);
+    window.addEventListener("blur", this._onWindowBlur);
+    document.addEventListener("visibilitychange", this._onVisibilityChange);
   }
 
   public destroy(): void {
@@ -80,6 +82,8 @@ export class CameraControls {
     this._app.canvas.removeEventListener("wheel", this._onWheel);
     window.removeEventListener("keydown", this._onKeyDown);
     window.removeEventListener("keyup", this._onKeyUp);
+    window.removeEventListener("blur", this._onWindowBlur);
+    document.removeEventListener("visibilitychange", this._onVisibilityChange);
   }
 
   public update(deltaMs: number): void {
@@ -304,6 +308,16 @@ export class CameraControls {
     this._pressedKeys.delete(event.code);
   };
 
+  private readonly _onWindowBlur = (): void => {
+    this._resetKeyboardInput();
+  };
+
+  private readonly _onVisibilityChange = (): void => {
+    if (document.visibilityState === "hidden") {
+      this._resetKeyboardInput();
+    }
+  };
+
   private _isPanKey(code: string): boolean {
     return (
       code === "ArrowLeft" ||
@@ -459,6 +473,11 @@ export class CameraControls {
   private _stopKeyboardPan(): void {
     this._keyboardVelocityX = 0;
     this._keyboardVelocityY = 0;
+  }
+
+  private _resetKeyboardInput(): void {
+    this._pressedKeys.clear();
+    this._stopKeyboardPan();
   }
 
   private _approach(current: number, target: number, maxDelta: number): number {
