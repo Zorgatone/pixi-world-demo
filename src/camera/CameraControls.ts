@@ -13,6 +13,7 @@ const VELOCITY_SAMPLE_WEIGHT = 0.35;
 const FLING_DECAY_RATE = 4.8;
 const MIN_FLING_SPEED = 8;
 const MAX_FLING_SPEED = 3600;
+const RELEASED_MOUSE_MOVE_FLING_GRACE_MS = 160;
 
 interface PointerState {
   x: number;
@@ -65,6 +66,8 @@ export class CameraControls {
     this._app.canvas.addEventListener("wheel", this._onWheel, {
       passive: false,
     });
+    window.addEventListener("pointerup", this._onGlobalPointerUp);
+    window.addEventListener("pointercancel", this._onGlobalPointerCancel);
     window.addEventListener("keydown", this._onKeyDown);
     window.addEventListener("keyup", this._onKeyUp);
     window.addEventListener("blur", this._onWindowBlur);
@@ -80,6 +83,8 @@ export class CameraControls {
       this._onPointerCancel,
     );
     this._app.canvas.removeEventListener("wheel", this._onWheel);
+    window.removeEventListener("pointerup", this._onGlobalPointerUp);
+    window.removeEventListener("pointercancel", this._onGlobalPointerCancel);
     window.removeEventListener("keydown", this._onKeyDown);
     window.removeEventListener("keyup", this._onKeyUp);
     window.removeEventListener("blur", this._onWindowBlur);
@@ -202,6 +207,11 @@ export class CameraControls {
       return;
     }
 
+    if (this._isReleasedMouseMove(event)) {
+      this._handleReleasedMouseMove(event);
+      return;
+    }
+
     const point = this._getCanvasPoint(event);
 
     this._pointers.set(event.pointerId, point);
@@ -228,6 +238,10 @@ export class CameraControls {
   };
 
   private readonly _onPointerUp = (event: PointerEvent): void => {
+    if (!this._pointers.has(event.pointerId)) {
+      return;
+    }
+
     const pointer = this._pointers.get(event.pointerId);
 
     this._pointers.delete(event.pointerId);
@@ -277,6 +291,22 @@ export class CameraControls {
     }
   };
 
+  private readonly _onGlobalPointerUp = (event: PointerEvent): void => {
+    if (!this._pointers.has(event.pointerId)) {
+      return;
+    }
+
+    this._onPointerUp(event);
+  };
+
+  private readonly _onGlobalPointerCancel = (event: PointerEvent): void => {
+    if (!this._pointers.has(event.pointerId)) {
+      return;
+    }
+
+    this._onPointerCancel(event);
+  };
+
   private readonly _onWheel = (event: WheelEvent): void => {
     this._stopFling();
 
@@ -310,11 +340,13 @@ export class CameraControls {
 
   private readonly _onWindowBlur = (): void => {
     this._resetKeyboardInput();
+    this._cancelPointerInteraction();
   };
 
   private readonly _onVisibilityChange = (): void => {
     if (document.visibilityState === "hidden") {
       this._resetKeyboardInput();
+      this._cancelPointerInteraction();
     }
   };
 
@@ -402,6 +434,23 @@ export class CameraControls {
     };
   }
 
+  private _isReleasedMouseMove(event: PointerEvent): boolean {
+    return event.pointerType === "mouse" && event.buttons === 0;
+  }
+
+  private _handleReleasedMouseMove(event: PointerEvent): void {
+    const elapsedSinceLastDragSample =
+      performance.now() - this._lastPointerTime;
+
+    if (elapsedSinceLastDragSample <= RELEASED_MOUSE_MOVE_FLING_GRACE_MS) {
+      this._onPointerUp(event);
+      return;
+    }
+
+    this._cancelPointerInteraction();
+    event.preventDefault();
+  }
+
   private _sampleDragVelocity(
     deltaX: number,
     deltaY: number,
@@ -473,6 +522,21 @@ export class CameraControls {
   private _stopKeyboardPan(): void {
     this._keyboardVelocityX = 0;
     this._keyboardVelocityY = 0;
+  }
+
+  private _cancelPointerInteraction(): void {
+    for (const pointerId of this._pointers.keys()) {
+      if (this._app.canvas.hasPointerCapture(pointerId)) {
+        this._app.canvas.releasePointerCapture(pointerId);
+      }
+    }
+
+    this._pointers.clear();
+    this._activePointerId = undefined;
+    this._pinchDistance = undefined;
+    this._didPinch = false;
+    this._dragVelocityX = 0;
+    this._dragVelocityY = 0;
   }
 
   private _resetKeyboardInput(): void {
