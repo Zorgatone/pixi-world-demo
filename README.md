@@ -44,6 +44,13 @@ New changes pushed to the `main` branch will trigger a Github Actions pipeline (
 
 This project uses [Volta](https://volta.sh) as a [Node](https://nodejs.org/) version manager, and it's set to use the LTS version available at the time of writing (ie. Node 22).
 
+## Random shapes generation
+
+Random shapes with random sizes and colors are generated from a repeatable seed, the seed can be changed in the query-string. For example:
+
+1. [http://http://localhost:8080/?seed=banana](http://http://localhost:8080/?seed=banana) for localhost
+2. [https://zorgatone.github.io/pixi-world-demo/?seed=banana](https://zorgatone.github.io/pixi-world-demo/?seed=banana) for the version deployed on GitHub Pages
+
 ## VS Code tips
 
 If you're using [Visual Studio Code](https://code.visualstudio.com) as an editor, please add the following to your workspace settings JSON to have VS Code intellisense use the same version of TypeScript as Vite:
