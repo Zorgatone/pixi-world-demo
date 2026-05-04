@@ -5,6 +5,7 @@ import { CameraControls } from "./camera/CameraControls";
 import { MAX_ZOOM, MIN_ZOOM, WORLD_HEIGHT, WORLD_WIDTH } from "./constants";
 import { CameraInfo } from "./ui/CameraInfo";
 import { FPSCounter } from "./ui/FPSCounter";
+import { ShapeStats } from "./ui/ShapeStats";
 import { WorldGrid } from "./ui/WorldGrid";
 import {
   watchPixelRatio,
@@ -29,6 +30,7 @@ export class Root {
   private _cameraControls?: CameraControls;
   private _cameraInfo: CameraInfo;
   private _fpsCounter: FPSCounter;
+  private _shapeStats: ShapeStats;
   private _worldGrid: WorldGrid;
   private _shapeLayer?: ShapeRenderLayer;
   private _initState: InitState;
@@ -64,6 +66,7 @@ export class Root {
 
     this._cameraInfo = new CameraInfo(this.camera);
     this._fpsCounter = new FPSCounter();
+    this._shapeStats = new ShapeStats();
   }
 
   public async init(domElement: HTMLElement): Promise<void> {
@@ -116,6 +119,7 @@ export class Root {
     this.uiContainer.addChild(this._worldGrid.view);
     this.uiContainer.addChild(this._fpsCounter.view);
     this.uiContainer.addChild(this._cameraInfo.view);
+    this.uiContainer.addChild(this._shapeStats.view);
     this._fpsCounter.reset();
 
     this._setupWatchers(domElement);
@@ -161,6 +165,7 @@ export class Root {
     this._shapeLayer?.tick(this.camera);
     this._fpsCounter.tick();
     this._cameraInfo.tick(ticker.deltaMS);
+    this._shapeStats.tick(ticker.deltaMS, this._shapeLayer?.stats);
     this._worldGrid.tick(this.camera, this.app.renderer.resolution);
   }
 

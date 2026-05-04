@@ -9,6 +9,15 @@ import { ChunkedSpatialGrid, type SpatialBounds } from "./ChunkedSpatialGrid";
 const VISIBILITY_MARGIN = CHUNK_SIZE;
 const BOUNDS_EPSILON = 0.001;
 
+export interface ShapeRenderStats {
+  totalObjects: number;
+  activeSprites: number;
+  culledObjects: number;
+  poolSize: number;
+  visibleQueryCount: number;
+  chunkCountTouched: number;
+}
+
 export class ShapeRenderLayer {
   public readonly view: Container;
 
@@ -18,6 +27,7 @@ export class ShapeRenderLayer {
   private readonly _visibleSet: Set<ShapeObj>;
   private readonly _activeSprites: Map<ShapeObj, Sprite>;
   private readonly _spritePool: Sprite[];
+  private readonly _stats: ShapeRenderStats;
   private _lastBounds?: SpatialBounds;
 
   public constructor(
@@ -31,6 +41,18 @@ export class ShapeRenderLayer {
     this._visibleSet = new Set();
     this._activeSprites = new Map();
     this._spritePool = [];
+    this._stats = {
+      totalObjects: objects.length,
+      activeSprites: 0,
+      culledObjects: objects.length,
+      poolSize: 0,
+      visibleQueryCount: 0,
+      chunkCountTouched: 0,
+    };
+  }
+
+  public get stats(): Readonly<ShapeRenderStats> {
+    return this._stats;
   }
 
   public tick(camera: Camera): void {
@@ -45,6 +67,7 @@ export class ShapeRenderLayer {
     this._syncVisibleSet();
     this._releaseHiddenSprites();
     this._activateVisibleSprites();
+    this._updateStats();
   }
 
   public destroy(): void {
@@ -62,6 +85,7 @@ export class ShapeRenderLayer {
     this._visibleSet.clear();
     this._activeSprites.clear();
     this._spritePool.length = 0;
+    this._updateStats();
     this.view.destroy();
   }
 
@@ -115,6 +139,15 @@ export class ShapeRenderLayer {
     );
     sprite.position.set(object.x, object.y);
     sprite.rotation = object.rotation;
+  }
+
+  private _updateStats(): void {
+    this._stats.activeSprites = this._activeSprites.size;
+    this._stats.culledObjects =
+      this._stats.totalObjects - this._stats.activeSprites;
+    this._stats.poolSize = this._spritePool.length;
+    this._stats.visibleQueryCount = this._spatialGrid.lastVisibleCount;
+    this._stats.chunkCountTouched = this._spatialGrid.lastChunkCountTouched;
   }
 
   private _isSameBounds(a: SpatialBounds, b: SpatialBounds): boolean {
