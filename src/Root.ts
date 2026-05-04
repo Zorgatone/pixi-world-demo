@@ -6,13 +6,18 @@ import { MAX_ZOOM, MIN_ZOOM, WORLD_HEIGHT, WORLD_WIDTH } from "./constants";
 import { CameraInfo } from "./ui/CameraInfo";
 import { FPSCounter } from "./ui/FPSCounter";
 import { WorldGrid } from "./ui/WorldGrid";
-import { watchPixelRatio } from "./utils/watchPixelRatio";
+import {
+  watchPixelRatio,
+  type RemoveListenerFn,
+} from "./utils/watchPixelRatio";
+import { ShapeRenderLayer } from "./world/ShapeRenderLayer";
 
 enum InitState {
   INIT_ERROR = -1,
   UNINITIALIZED = 0,
   INITIALIZING = 1,
   INIT_SUCCESS = 2,
+  DESTROYED = 3,
 }
 
 export class Root {
@@ -25,12 +30,14 @@ export class Root {
   private _cameraInfo: CameraInfo;
   private _fpsCounter: FPSCounter;
   private _worldGrid: WorldGrid;
+  private _shapeLayer?: ShapeRenderLayer;
   private _initState: InitState;
   private _currentResolution: number;
   private _initPromise?: undefined | Promise<void>;
   private _resizePromise?: undefined | Promise<void>;
   private _viewportElement?: HTMLElement;
   private _resizeObserver?: ResizeObserver;
+  private _removePixelRatioListener?: RemoveListenerFn;
   private _queuedViewportUpdate?: number;
 
   public constructor() {
@@ -86,12 +93,20 @@ export class Root {
       });
 
       await this._initPromise;
-
-      this._initState = InitState.INIT_SUCCESS;
     } catch (error) {
-      this._initState = InitState.INIT_ERROR;
+      if (!this._isDestroyed()) {
+        this._initState = InitState.INIT_ERROR;
+      }
+
       throw error;
     }
+
+    if (this._isDestroyed()) {
+      this.app.destroy({ removeView: true }, { children: true });
+      throw new Error("Root was destroyed during initialization!");
+    }
+
+    this._initState = InitState.INIT_SUCCESS;
 
     domElement.appendChild(this.app.canvas);
 
@@ -110,12 +125,47 @@ export class Root {
     this.app.ticker.add(this._tick, this);
   }
 
+  public setShapeLayer(shapeLayer: ShapeRenderLayer): void {
+    this._removeShapeLayer();
+    this._shapeLayer = shapeLayer;
+    this.worldContainer.addChild(shapeLayer.view);
+    shapeLayer.tick(this.camera);
+  }
+
+  public destroy(): void {
+    if (this._initState === InitState.DESTROYED) {
+      return;
+    }
+
+    const wasInitialized = this._initState === InitState.INIT_SUCCESS;
+
+    this.app.ticker.remove(this._tick, this);
+    this._cameraControls?.destroy();
+    delete this._cameraControls;
+
+    this._removeShapeLayer();
+    this._teardownWatchers();
+    delete this._resizePromise;
+    delete this._initPromise;
+
+    if (wasInitialized) {
+      this.app.destroy({ removeView: true }, { children: true });
+    }
+
+    this._initState = InitState.DESTROYED;
+  }
+
   private _tick(ticker: Ticker): void {
     this._cameraControls?.update(ticker.deltaMS);
     this.camera.update(ticker.deltaMS);
+    this._shapeLayer?.tick(this.camera);
     this._fpsCounter.tick();
     this._cameraInfo.tick(ticker.deltaMS);
     this._worldGrid.tick(this.camera, this.app.renderer.resolution);
+  }
+
+  private _isDestroyed(): boolean {
+    return this._initState === InitState.DESTROYED;
   }
 
   private _setupWatchers(domElement: HTMLElement): void {
@@ -124,10 +174,15 @@ export class Root {
   }
 
   private _watchResolution(): void {
-    watchPixelRatio(this._onResolutionChanged);
+    this._removePixelRatioListener?.();
+    this._removePixelRatioListener = watchPixelRatio(this._onResolutionChanged);
   }
 
   private _onResolutionChanged(resolution: number): void {
+    if (this._initState === InitState.DESTROYED) {
+      return;
+    }
+
     this._currentResolution = resolution;
     console.log(`New resolution: ${this._currentResolution}x`);
 
@@ -199,5 +254,37 @@ export class Root {
     const screen = this.app.renderer.screen;
 
     this.camera.resize(screen.width, screen.height);
+  }
+
+  private _teardownWatchers(): void {
+    this._removePixelRatioListener?.();
+    delete this._removePixelRatioListener;
+
+    this._resizeObserver?.disconnect();
+    delete this._resizeObserver;
+
+    window.removeEventListener("resize", this._queueViewportUpdate);
+    window.removeEventListener("orientationchange", this._queueViewportUpdate);
+    window.visualViewport?.removeEventListener(
+      "resize",
+      this._queueViewportUpdate,
+    );
+
+    if (typeof this._queuedViewportUpdate !== "undefined") {
+      cancelAnimationFrame(this._queuedViewportUpdate);
+      delete this._queuedViewportUpdate;
+    }
+
+    delete this._viewportElement;
+  }
+
+  private _removeShapeLayer(): void {
+    if (!this._shapeLayer) {
+      return;
+    }
+
+    this.worldContainer.removeChild(this._shapeLayer.view);
+    this._shapeLayer.destroy();
+    delete this._shapeLayer;
   }
 }

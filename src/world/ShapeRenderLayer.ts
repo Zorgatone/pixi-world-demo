@@ -47,6 +47,24 @@ export class ShapeRenderLayer {
     this._activateVisibleSprites();
   }
 
+  public destroy(): void {
+    this.view.removeChildren();
+
+    for (const sprite of this._activeSprites.values()) {
+      sprite.destroy();
+    }
+
+    for (let i = 0, len = this._spritePool.length; i < len; i += 1) {
+      this._spritePool[i].destroy();
+    }
+
+    this._visibleObjects.length = 0;
+    this._visibleSet.clear();
+    this._activeSprites.clear();
+    this._spritePool.length = 0;
+    this.view.destroy();
+  }
+
   private _syncVisibleSet(): void {
     this._visibleSet.clear();
 

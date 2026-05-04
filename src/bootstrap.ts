@@ -1,5 +1,3 @@
-import { Container } from "pixi.js";
-
 import { Root } from "./Root";
 import { generateTextures, TextureCache } from "./textures";
 import { ShapeObj } from "./types/ShapeObj";
@@ -107,18 +105,11 @@ function setupScene(
   root: Root,
   textureCache: Readonly<TextureCache>,
   data: ShapeObj[],
-): Container {
+): void {
   const shapeLayer = new ShapeRenderLayer(textureCache, data);
 
   root.camera.jumpTo(WORLD_WIDTH / 2, WORLD_HEIGHT / 2);
-  shapeLayer.tick(root.camera);
-
-  root.worldContainer.addChild(shapeLayer.view);
-  root.app.ticker.add(() => {
-    shapeLayer.tick(root.camera);
-  });
-
-  return shapeLayer.view;
+  root.setShapeLayer(shapeLayer);
 }
 
 export async function bootstrap(): Promise<void> {
