@@ -1,12 +1,24 @@
 {
   "name": "pixi-world-demo",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
+  "author": {
+    "email": "zorgatone@gmail.com",
+    "name": "Tommaso Ricci",
+    "url": "https://github.com/Zorgatone"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Zorgatone/pixi-world-demo.git"
+  },
+  "license": "UNLICENSED",
   "scripts": {
     "start": "npm run dev",
-    "build": "npm run lint && tsc && vite build",
+    "build": "npm run lint && tsc --noEmit && vite build",
     "lint": "eslint .",
+    "type-check": "tsc --noEmit",
+    "prettify": "prettier --write .",
     "test": "vitest run",
     "dev": "vite"
   },
