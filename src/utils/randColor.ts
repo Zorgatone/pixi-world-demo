@@ -1,10 +1,11 @@
 import { randInt } from "./randInt";
 
-const COLOR_COUNT = 0x1000000;
+const WHITE = 0xffffff;
+const COLOR_COUNT = WHITE + 1;
 const COLOR_CHANNEL_MAX = 255;
+// WCAG2 accessibility (enough contrast on black background)
 const MIN_VISIBLE_LUMINANCE = 0.18;
 const MAX_RANDOM_COLOR_ATTEMPTS = 16;
-const WHITE = 0xffffff;
 
 export function randColor(random: () => number): number {
   for (let i = 0; i < MAX_RANDOM_COLOR_ATTEMPTS; i += 1) {
