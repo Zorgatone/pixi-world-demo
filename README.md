@@ -42,6 +42,8 @@ You can run a production build using `npm run build`, the assets will be in the 
 
 New changes pushed to the `main` branch will trigger a Github Actions pipeline (defined in the `.github/workflows/pages.yaml` file) that runs the build pipeline and deploys the game demo using Github Pages.
 
+This project uses [Volta](https://volta.sh) as a [Node](https://nodejs.org/) version manager, and it's set to use the LTS version available at the time of writing (ie. Node 22).
+
 ## VS Code tips
 
 If you're using [Visual Studio Code](https://code.visualstudio.com) as an editor, please add the following to your workspace settings JSON to have VS Code intellisense use the same version of TypeScript as Vite:
