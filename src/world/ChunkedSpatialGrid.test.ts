@@ -25,7 +25,7 @@ describe("ChunkedSpatialGrid", () => {
     const result = grid.query({ minX: 90, minY: 90, maxX: 110, maxY: 110 }, []);
 
     expect(result).toEqual([inside]);
-    expect(grid.lastVisibleCount).toBe(1);
+    expect(grid.lastQueryResultCount).toBe(1);
     expect(grid.lastChunkCountTouched).toBeGreaterThan(0);
   });
 
@@ -49,7 +49,7 @@ describe("ChunkedSpatialGrid", () => {
     const result = grid.query(query, []);
 
     expect(result).toEqual([boundaryObject]);
-    expect(grid.lastVisibleCount).toBe(1);
+    expect(grid.lastQueryResultCount).toBe(1);
     expect(grid.lastChunkCountTouched).toBe(2);
   });
 });

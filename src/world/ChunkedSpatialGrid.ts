@@ -21,14 +21,14 @@ export class ChunkedSpatialGrid {
   private readonly _columns: number;
   private readonly _rows: number;
   private readonly _chunks: ShapeObj[][];
-  private _lastVisibleCount: number;
+  private _lastQueryResultCount: number;
   private _lastChunkCountTouched: number;
 
   public constructor(objects: readonly ShapeObj[]) {
     this._columns = Math.ceil(WORLD_WIDTH / CHUNK_SIZE);
     this._rows = Math.ceil(WORLD_HEIGHT / CHUNK_SIZE);
     this._chunks = Array.from({ length: this._columns * this._rows }, () => []);
-    this._lastVisibleCount = 0;
+    this._lastQueryResultCount = 0;
     this._lastChunkCountTouched = 0;
 
     for (let i = 0, len = objects.length; i < len; i += 1) {
@@ -36,8 +36,8 @@ export class ChunkedSpatialGrid {
     }
   }
 
-  public get lastVisibleCount(): number {
-    return this._lastVisibleCount;
+  public get lastQueryResultCount(): number {
+    return this._lastQueryResultCount;
   }
 
   public get lastChunkCountTouched(): number {
@@ -70,7 +70,7 @@ export class ChunkedSpatialGrid {
       }
     }
 
-    this._lastVisibleCount = out.length;
+    this._lastQueryResultCount = out.length;
 
     return out;
   }
@@ -83,26 +83,15 @@ export class ChunkedSpatialGrid {
   }
 
   private _intersects(object: ShapeObj, bounds: SpatialBounds): boolean {
-    const objectBounds = this._objectBounds(object);
-
-    return (
-      objectBounds.maxX >= bounds.minX &&
-      objectBounds.minX <= bounds.maxX &&
-      objectBounds.maxY >= bounds.minY &&
-      objectBounds.minY <= bounds.maxY
-    );
-  }
-
-  private _objectBounds(object: ShapeObj): SpatialBounds {
     const halfSize =
       Math.max(object.width, object.height) * ROTATED_AABB_PADDING * 0.5;
 
-    return {
-      minX: object.x - halfSize,
-      minY: object.y - halfSize,
-      maxX: object.x + halfSize,
-      maxY: object.y + halfSize,
-    };
+    return (
+      object.x + halfSize >= bounds.minX &&
+      object.x - halfSize <= bounds.maxX &&
+      object.y + halfSize >= bounds.minY &&
+      object.y - halfSize <= bounds.maxY
+    );
   }
 
   private _chunkX(x: number): number {

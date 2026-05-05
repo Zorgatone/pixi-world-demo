@@ -46,7 +46,7 @@ export class ShapeStats {
         "Active sprites: --\n" +
         "Culled shapes: --\n" +
         "Sprite pool: --\n" +
-        "Visible query: --\n" +
+        "Query result: --\n" +
         "Chunks touched: --";
       return;
     }
@@ -56,7 +56,7 @@ export class ShapeStats {
       `Active sprites: ${stats.activeSprites}\n` +
       `Culled shapes: ${stats.culledObjects}\n` +
       `Sprite pool: ${stats.poolSize}\n` +
-      `Visible query: ${stats.visibleQueryCount}\n` +
+      `Query result: ${stats.queryResultCount}\n` +
       `Chunks touched: ${stats.chunkCountTouched}`;
   }
 }

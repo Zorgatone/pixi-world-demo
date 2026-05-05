@@ -14,7 +14,7 @@ export interface ShapeRenderStats {
   activeSprites: number;
   culledObjects: number;
   poolSize: number;
-  visibleQueryCount: number;
+  queryResultCount: number;
   chunkCountTouched: number;
 }
 
@@ -23,8 +23,8 @@ export class ShapeRenderLayer {
 
   private readonly _textures: Readonly<TextureCache>;
   private readonly _spatialGrid: ChunkedSpatialGrid;
-  private readonly _visibleObjects: ShapeObj[];
-  private readonly _visibleSet: Set<ShapeObj>;
+  private readonly _queryResults: ShapeObj[];
+  private readonly _queryResultSet: Set<ShapeObj>;
   private readonly _activeSprites: Map<ShapeObj, Sprite>;
   private readonly _spritePool: Sprite[];
   private readonly _stats: ShapeRenderStats;
@@ -37,8 +37,8 @@ export class ShapeRenderLayer {
     this.view = new Container();
     this._textures = textures;
     this._spatialGrid = new ChunkedSpatialGrid(objects);
-    this._visibleObjects = [];
-    this._visibleSet = new Set();
+    this._queryResults = [];
+    this._queryResultSet = new Set();
     this._activeSprites = new Map();
     this._spritePool = [];
     this._stats = {
@@ -46,7 +46,7 @@ export class ShapeRenderLayer {
       activeSprites: 0,
       culledObjects: objects.length,
       poolSize: 0,
-      visibleQueryCount: 0,
+      queryResultCount: 0,
       chunkCountTouched: 0,
     };
   }
@@ -63,10 +63,10 @@ export class ShapeRenderLayer {
     }
 
     this._lastBounds = { ...bounds };
-    this._spatialGrid.query(bounds, this._visibleObjects);
-    this._syncVisibleSet();
-    this._releaseHiddenSprites();
-    this._activateVisibleSprites();
+    this._spatialGrid.query(bounds, this._queryResults);
+    this._syncQueryResultSet();
+    this._releaseOutOfQuerySprites();
+    this._activateQueryResultSprites();
     this._updateStats();
   }
 
@@ -81,25 +81,25 @@ export class ShapeRenderLayer {
       this._spritePool[i].destroy();
     }
 
-    this._visibleObjects.length = 0;
-    this._visibleSet.clear();
+    this._queryResults.length = 0;
+    this._queryResultSet.clear();
     this._activeSprites.clear();
     this._spritePool.length = 0;
     this._updateStats();
     this.view.destroy();
   }
 
-  private _syncVisibleSet(): void {
-    this._visibleSet.clear();
+  private _syncQueryResultSet(): void {
+    this._queryResultSet.clear();
 
-    for (let i = 0, len = this._visibleObjects.length; i < len; i += 1) {
-      this._visibleSet.add(this._visibleObjects[i]);
+    for (let i = 0, len = this._queryResults.length; i < len; i += 1) {
+      this._queryResultSet.add(this._queryResults[i]);
     }
   }
 
-  private _releaseHiddenSprites(): void {
+  private _releaseOutOfQuerySprites(): void {
     for (const [object, sprite] of this._activeSprites) {
-      if (this._visibleSet.has(object)) {
+      if (this._queryResultSet.has(object)) {
         continue;
       }
 
@@ -109,9 +109,9 @@ export class ShapeRenderLayer {
     }
   }
 
-  private _activateVisibleSprites(): void {
-    for (let i = 0, len = this._visibleObjects.length; i < len; i += 1) {
-      const object = this._visibleObjects[i];
+  private _activateQueryResultSprites(): void {
+    for (let i = 0, len = this._queryResults.length; i < len; i += 1) {
+      const object = this._queryResults[i];
 
       if (this._activeSprites.has(object)) {
         continue;
@@ -146,7 +146,7 @@ export class ShapeRenderLayer {
     this._stats.culledObjects =
       this._stats.totalObjects - this._stats.activeSprites;
     this._stats.poolSize = this._spritePool.length;
-    this._stats.visibleQueryCount = this._spatialGrid.lastVisibleCount;
+    this._stats.queryResultCount = this._spatialGrid.lastQueryResultCount;
     this._stats.chunkCountTouched = this._spatialGrid.lastChunkCountTouched;
   }
 
