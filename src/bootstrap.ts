@@ -1,22 +1,23 @@
-import { Root } from "./Root";
+import { GameApp } from "./GameApp";
+import { WorldScene } from "./WorldScene";
 import { createShapeTextures, ShapeTextureCache } from "./textures";
 import { ShapeData } from "./types/ShapeData";
 import { WORLD_HEIGHT, WORLD_WIDTH } from "./constants";
 import { generateWorldData } from "./world/generateWorldData";
 import { ShapeRenderLayer } from "./world/ShapeRenderLayer";
 
-async function setupRoot(): Promise<Root> {
+async function setupGameApp(): Promise<GameApp> {
   const pixiContainer = document.getElementById("pixi-container");
 
   if (!pixiContainer) {
     throw new Error("Could not find pixi-container DOM element!");
   }
 
-  const root = new Root();
+  const gameApp = new GameApp();
 
-  await root.init(pixiContainer);
+  await gameApp.init(pixiContainer);
 
-  return root;
+  return gameApp;
 }
 
 function generateData(): ShapeData[] {
@@ -26,28 +27,28 @@ function generateData(): ShapeData[] {
   return generateWorldData(seed);
 }
 
-function makeTextures(root: Root): Readonly<ShapeTextureCache> {
-  const app = root.app;
+function makeTextures(gameApp: GameApp): Readonly<ShapeTextureCache> {
+  const app = gameApp.app;
 
   return createShapeTextures(app.renderer.generateTexture.bind(app.renderer));
 }
 
 function setupScene(
-  root: Root,
+  scene: WorldScene,
   textureCache: Readonly<ShapeTextureCache>,
   data: ShapeData[],
 ): void {
   const shapeLayer = new ShapeRenderLayer(textureCache, data);
 
-  root.camera.jumpToCenter(WORLD_WIDTH / 2, WORLD_HEIGHT / 2);
-  root.setShapeLayer(shapeLayer);
+  scene.camera.jumpToCenter(WORLD_WIDTH / 2, WORLD_HEIGHT / 2);
+  scene.setShapeLayer(shapeLayer);
 }
 
 export async function bootstrap(): Promise<void> {
-  const root = await setupRoot();
+  const gameApp = await setupGameApp();
 
   const data = generateData();
-  const textures = makeTextures(root);
+  const textures = makeTextures(gameApp);
 
-  setupScene(root, textures, data);
+  setupScene(gameApp.scene, textures, data);
 }
