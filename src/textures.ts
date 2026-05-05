@@ -48,7 +48,33 @@ type TextureRenderFunction = (options: {
   antialias: boolean;
 }) => Texture;
 
-export type ShapeTextureCache = Record<ShapeKind, Texture>;
+type ShapeTextureMap = Record<ShapeKind, Texture>;
+
+export class ShapeTextureCache {
+  private readonly _textures: Readonly<ShapeTextureMap>;
+  private _isDestroyed: boolean;
+
+  public constructor(textures: ShapeTextureMap) {
+    this._textures = Object.freeze(textures);
+    this._isDestroyed = false;
+  }
+
+  public get(kind: ShapeKind): Texture {
+    return this._textures[kind];
+  }
+
+  public destroy(): void {
+    if (this._isDestroyed) {
+      return;
+    }
+
+    this._isDestroyed = true;
+
+    for (const texture of new Set(Object.values(this._textures))) {
+      texture.destroy(true);
+    }
+  }
+}
 
 function createTexture(
   graphics: Graphics,
@@ -64,23 +90,23 @@ function createTexture(
 
 export function createShapeTextures(
   renderTextureFn: TextureRenderFunction,
-): Readonly<ShapeTextureCache> {
+): ShapeTextureCache {
   const graphics = new Graphics();
 
-  const cache: ShapeTextureCache = Object.create(null) as ShapeTextureCache;
+  const textures: ShapeTextureMap = Object.create(null) as ShapeTextureMap;
 
   renderCircle(graphics);
-  cache[ShapeKind.CIRCLE] = createTexture(graphics, renderTextureFn);
+  textures[ShapeKind.CIRCLE] = createTexture(graphics, renderTextureFn);
   graphics.clear();
 
   renderSquare(graphics);
-  cache[ShapeKind.SQUARE] = createTexture(graphics, renderTextureFn);
+  textures[ShapeKind.SQUARE] = createTexture(graphics, renderTextureFn);
   graphics.clear();
 
   renderTriangle(graphics);
-  cache[ShapeKind.TRIANGLE] = createTexture(graphics, renderTextureFn);
+  textures[ShapeKind.TRIANGLE] = createTexture(graphics, renderTextureFn);
 
   graphics.destroy();
 
-  return Object.freeze(cache);
+  return new ShapeTextureCache(textures);
 }

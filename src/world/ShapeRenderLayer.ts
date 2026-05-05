@@ -8,6 +8,7 @@ import { ShapeData } from "../types/ShapeData";
 import { ChunkedSpatialGrid, type SpatialBounds } from "./ChunkedSpatialGrid";
 
 const VISIBILITY_MARGIN = CHUNK_SIZE;
+const QUERY_REFRESH_MARGIN = VISIBILITY_MARGIN * 0.5;
 const BOUNDS_EPSILON = 0.001;
 
 export interface ShapeRenderStats {
@@ -22,7 +23,7 @@ export interface ShapeRenderStats {
 export class ShapeRenderLayer {
   public readonly view: Container;
 
-  private readonly _textures: Readonly<ShapeTextureCache>;
+  private readonly _textures: ShapeTextureCache;
   private readonly _spatialGrid: ChunkedSpatialGrid;
   private readonly _queryResults: ShapeData[];
   private readonly _queryResultSet: Set<ShapeData>;
@@ -32,7 +33,7 @@ export class ShapeRenderLayer {
   private _lastBounds?: SpatialBounds;
 
   public constructor(
-    textures: Readonly<ShapeTextureCache>,
+    textures: ShapeTextureCache,
     objects: readonly ShapeData[],
   ) {
     this.view = new Container();
@@ -57,14 +58,19 @@ export class ShapeRenderLayer {
   }
 
   public tick(camera: Camera): void {
-    const bounds = camera.getVisibleBounds(VISIBILITY_MARGIN);
+    const refreshBounds = camera.getVisibleBounds(QUERY_REFRESH_MARGIN);
 
-    if (this._lastBounds && this._isSameBounds(bounds, this._lastBounds)) {
+    if (
+      this._lastBounds &&
+      this._containsBounds(this._lastBounds, refreshBounds)
+    ) {
       return;
     }
 
-    this._lastBounds = { ...bounds };
-    this._spatialGrid.query(bounds, this._queryResults);
+    const queryBounds = camera.getVisibleBounds(VISIBILITY_MARGIN);
+
+    this._lastBounds = { ...queryBounds };
+    this._spatialGrid.query(queryBounds, this._queryResults);
     this._syncQueryResultSet();
     this._releaseOutOfQuerySprites();
     this._activateQueryResultSprites();
@@ -131,7 +137,7 @@ export class ShapeRenderLayer {
   }
 
   private _applyObjectToSprite(object: ShapeData, sprite: Sprite): void {
-    sprite.texture = this._textures[object.kind];
+    sprite.texture = this._textures.get(object.kind);
     sprite.anchor.set(0.5, 0.5);
     sprite.tint = object.color;
     sprite.scale.set(
@@ -151,12 +157,12 @@ export class ShapeRenderLayer {
     this._stats.chunkCountTouched = this._spatialGrid.lastChunkCountTouched;
   }
 
-  private _isSameBounds(a: SpatialBounds, b: SpatialBounds): boolean {
+  private _containsBounds(outer: SpatialBounds, inner: SpatialBounds): boolean {
     return (
-      Math.abs(a.minX - b.minX) < BOUNDS_EPSILON &&
-      Math.abs(a.minY - b.minY) < BOUNDS_EPSILON &&
-      Math.abs(a.maxX - b.maxX) < BOUNDS_EPSILON &&
-      Math.abs(a.maxY - b.maxY) < BOUNDS_EPSILON
+      outer.minX <= inner.minX + BOUNDS_EPSILON &&
+      outer.minY <= inner.minY + BOUNDS_EPSILON &&
+      outer.maxX >= inner.maxX - BOUNDS_EPSILON &&
+      outer.maxY >= inner.maxY - BOUNDS_EPSILON
     );
   }
 }

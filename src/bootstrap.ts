@@ -1,6 +1,5 @@
 import { ShapeData } from "./types/ShapeData";
 import { generateWorldData } from "./world/generateWorldData";
-import { ShapeRenderLayer } from "./world/ShapeRenderLayer";
 import { WorldScene } from "./world/WorldScene";
 
 import { WORLD_HEIGHT, WORLD_WIDTH } from "./constants";
@@ -28,7 +27,7 @@ function generateData(): ShapeData[] {
   return generateWorldData(seed);
 }
 
-function makeTextures(gameApp: GameApp): Readonly<ShapeTextureCache> {
+function makeTextures(gameApp: GameApp): ShapeTextureCache {
   const app = gameApp.app;
 
   return createShapeTextures(app.renderer.generateTexture.bind(app.renderer));
@@ -36,13 +35,11 @@ function makeTextures(gameApp: GameApp): Readonly<ShapeTextureCache> {
 
 function setupScene(
   scene: WorldScene,
-  textureCache: Readonly<ShapeTextureCache>,
+  textureCache: ShapeTextureCache,
   data: ShapeData[],
 ): void {
-  const shapeLayer = new ShapeRenderLayer(textureCache, data);
-
   scene.camera.jumpToCenter(WORLD_WIDTH / 2, WORLD_HEIGHT / 2);
-  scene.setShapeLayer(shapeLayer);
+  scene.setShapes(textureCache, data);
 }
 
 export async function bootstrap(): Promise<void> {

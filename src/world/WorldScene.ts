@@ -7,6 +7,8 @@ import { CameraInfo } from "../ui/CameraInfo";
 import { FPSCounter } from "../ui/FPSCounter";
 import { ShapeStats } from "../ui/ShapeStats";
 import { WorldGrid } from "../ui/WorldGrid";
+import { ShapeTextureCache } from "../textures";
+import { ShapeData } from "../types/ShapeData";
 
 import { ShapeRenderLayer } from "./ShapeRenderLayer";
 
@@ -21,6 +23,7 @@ export class WorldScene {
   private readonly _fpsCounter: FPSCounter;
   private readonly _shapeStats: ShapeStats;
   private readonly _worldGrid: WorldGrid;
+  private _shapeTextureCache?: ShapeTextureCache;
   private _shapeLayer?: ShapeRenderLayer;
 
   public constructor(app: Application) {
@@ -66,16 +69,20 @@ export class WorldScene {
     this._worldGrid.tick(this.camera, resolution);
   }
 
-  public setShapeLayer(shapeLayer: ShapeRenderLayer): void {
+  public setShapes(
+    textureCache: ShapeTextureCache,
+    data: readonly ShapeData[],
+  ): void {
     this._removeShapeLayer();
-    this._shapeLayer = shapeLayer;
-    this.worldContainer.addChild(shapeLayer.view);
-    shapeLayer.tick(this.camera);
+    this._destroyShapeTextureCache();
+    this._shapeTextureCache = textureCache;
+    this._setShapeLayer(new ShapeRenderLayer(textureCache, data));
   }
 
   public destroy(): void {
     this._cameraControls.destroy();
     this._removeShapeLayer();
+    this._destroyShapeTextureCache();
     this.view.destroy({ children: true });
   }
 
@@ -87,5 +94,17 @@ export class WorldScene {
     this.worldContainer.removeChild(this._shapeLayer.view);
     this._shapeLayer.destroy();
     delete this._shapeLayer;
+  }
+
+  private _setShapeLayer(shapeLayer: ShapeRenderLayer): void {
+    this._removeShapeLayer();
+    this._shapeLayer = shapeLayer;
+    this.worldContainer.addChild(shapeLayer.view);
+    shapeLayer.tick(this.camera);
+  }
+
+  private _destroyShapeTextureCache(): void {
+    this._shapeTextureCache?.destroy();
+    delete this._shapeTextureCache;
   }
 }
