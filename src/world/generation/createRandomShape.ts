@@ -1,8 +1,8 @@
 import { MAX_OBJECT_SIZE, MIN_OBJECT_SIZE } from "../../constants";
 import { ShapeData } from "../../types/ShapeData";
 import { ShapeKind } from "../../types/ShapeKind";
-
 import { randNum } from "../../utils/randNum";
+
 import { randomShapeKind } from "./randomShapeKind";
 import { randomVisibleColor } from "./randomVisibleColor";
 

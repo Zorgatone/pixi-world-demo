@@ -4,7 +4,7 @@ import {
   watchPixelRatio,
   type RemoveListenerFn,
 } from "./utils/watchPixelRatio";
-import { WorldScene } from "./WorldScene";
+import { WorldScene } from "./world/WorldScene";
 
 enum InitState {
   INIT_ERROR = -1,

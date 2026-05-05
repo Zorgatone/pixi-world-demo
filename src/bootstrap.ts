@@ -1,10 +1,11 @@
-import { GameApp } from "./GameApp";
-import { WorldScene } from "./WorldScene";
-import { createShapeTextures, ShapeTextureCache } from "./textures";
 import { ShapeData } from "./types/ShapeData";
-import { WORLD_HEIGHT, WORLD_WIDTH } from "./constants";
 import { generateWorldData } from "./world/generateWorldData";
 import { ShapeRenderLayer } from "./world/ShapeRenderLayer";
+import { WorldScene } from "./world/WorldScene";
+
+import { WORLD_HEIGHT, WORLD_WIDTH } from "./constants";
+import { GameApp } from "./GameApp";
+import { createShapeTextures, ShapeTextureCache } from "./textures";
 
 async function setupGameApp(): Promise<GameApp> {
   const pixiContainer = document.getElementById("pixi-container");

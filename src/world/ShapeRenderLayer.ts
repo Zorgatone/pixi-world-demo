@@ -4,6 +4,7 @@ import { Camera } from "../camera/Camera";
 import { CHUNK_SIZE } from "../constants";
 import { ShapeTextureCache } from "../textures";
 import { ShapeData } from "../types/ShapeData";
+
 import { ChunkedSpatialGrid, type SpatialBounds } from "./ChunkedSpatialGrid";
 
 const VISIBILITY_MARGIN = CHUNK_SIZE;

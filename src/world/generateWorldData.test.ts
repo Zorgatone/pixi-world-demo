@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { SPAWN_CELL_SIZE } from "../constants";
+
 import { generateWorldData, SPAWN_GRID_COLUMNS } from "./generateWorldData";
 
 function getSpawnCellIndex(x: number, y: number): number {

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { CHUNK_SIZE, MAX_OBJECT_SIZE } from "../constants";
 import { ShapeData } from "../types/ShapeData";
 import { ShapeKind } from "../types/ShapeKind";
+
 import { ChunkedSpatialGrid, type SpatialBounds } from "./ChunkedSpatialGrid";
 
 function createShape(x: number, y: number, size: number): ShapeData {

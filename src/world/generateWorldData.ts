@@ -9,6 +9,7 @@ import { ShapeData } from "../types/ShapeData";
 import { hashSeed } from "../utils/hashSeed";
 import { createPrng } from "../utils/prng";
 import { randInt } from "../utils/randInt";
+
 import { createRandomShape } from "./generation/createRandomShape";
 
 export const SPAWN_GRID_COLUMNS = Math.floor(WORLD_WIDTH / SPAWN_CELL_SIZE);

@@ -1,13 +1,14 @@
 import { Application, Container } from "pixi.js";
 
-import { Camera } from "./camera/Camera";
-import { CameraControls } from "./camera/CameraControls";
-import { MAX_ZOOM, MIN_ZOOM, WORLD_HEIGHT, WORLD_WIDTH } from "./constants";
-import { CameraInfo } from "./ui/CameraInfo";
-import { FPSCounter } from "./ui/FPSCounter";
-import { ShapeStats } from "./ui/ShapeStats";
-import { WorldGrid } from "./ui/WorldGrid";
-import { ShapeRenderLayer } from "./world/ShapeRenderLayer";
+import { Camera } from "../camera/Camera";
+import { CameraControls } from "../camera/CameraControls";
+import { MAX_ZOOM, MIN_ZOOM, WORLD_HEIGHT, WORLD_WIDTH } from "../constants";
+import { CameraInfo } from "../ui/CameraInfo";
+import { FPSCounter } from "../ui/FPSCounter";
+import { ShapeStats } from "../ui/ShapeStats";
+import { WorldGrid } from "../ui/WorldGrid";
+
+import { ShapeRenderLayer } from "./ShapeRenderLayer";
 
 export class WorldScene {
   public readonly view: Container;
