@@ -1,9 +1,9 @@
-import { TextureName } from "./TextureName";
+import { ShapeKind } from "./ShapeKind";
 
-export interface ShapeObj {
+export interface ShapeData {
   x: number;
   y: number;
-  kind: TextureName;
+  kind: ShapeKind;
   color: number;
   width: number;
   height: number;

@@ -5,7 +5,7 @@ import {
   WORLD_HEIGHT,
   WORLD_WIDTH,
 } from "../constants";
-import { ShapeObj } from "../types/ShapeObj";
+import { ShapeData } from "../types/ShapeData";
 
 export interface SpatialBounds {
   minX: number;
@@ -20,11 +20,11 @@ const MAX_OBJECT_HALF_SIZE = MAX_ROTATED_OBJECT_SIZE / 2;
 export class ChunkedSpatialGrid {
   private readonly _columns: number;
   private readonly _rows: number;
-  private readonly _chunks: ShapeObj[][];
+  private readonly _chunks: ShapeData[][];
   private _lastQueryResultCount: number;
   private _lastChunkCountTouched: number;
 
-  public constructor(objects: readonly ShapeObj[]) {
+  public constructor(objects: readonly ShapeData[]) {
     this._columns = Math.ceil(WORLD_WIDTH / CHUNK_SIZE);
     this._rows = Math.ceil(WORLD_HEIGHT / CHUNK_SIZE);
     this._chunks = Array.from({ length: this._columns * this._rows }, () => []);
@@ -44,7 +44,7 @@ export class ChunkedSpatialGrid {
     return this._lastChunkCountTouched;
   }
 
-  public query(bounds: SpatialBounds, out: ShapeObj[]): ShapeObj[] {
+  public query(bounds: SpatialBounds, out: ShapeData[]): ShapeData[] {
     out.length = 0;
     this._lastChunkCountTouched = 0;
 
@@ -75,14 +75,14 @@ export class ChunkedSpatialGrid {
     return out;
   }
 
-  private _insert(object: ShapeObj): void {
+  private _insert(object: ShapeData): void {
     const chunkX = this._chunkX(object.x);
     const chunkY = this._chunkY(object.y);
 
     this._chunks[this._index(chunkX, chunkY)].push(object);
   }
 
-  private _intersects(object: ShapeObj, bounds: SpatialBounds): boolean {
+  private _intersects(object: ShapeData, bounds: SpatialBounds): boolean {
     const halfSize =
       Math.max(object.width, object.height) * ROTATED_AABB_PADDING * 0.5;
 

@@ -30,10 +30,10 @@ export class Camera {
   private readonly _maxZoom: number;
   private _viewportWidth: number;
   private _viewportHeight: number;
-  private _x: number;
-  private _y: number;
-  private _targetX: number;
-  private _targetY: number;
+  private _centerX: number;
+  private _centerY: number;
+  private _targetCenterX: number;
+  private _targetCenterY: number;
   private _zoom: number;
   private _targetZoom: number;
   private _smoothing: number;
@@ -46,10 +46,10 @@ export class Camera {
     this._maxZoom = Math.max(this._minZoom, options.maxZoom);
     this._viewportWidth = 1;
     this._viewportHeight = 1;
-    this._x = 0;
-    this._y = 0;
-    this._targetX = 0;
-    this._targetY = 0;
+    this._centerX = 0;
+    this._centerY = 0;
+    this._targetCenterX = 0;
+    this._targetCenterY = 0;
     this._zoom = this._clampZoom(options.initialZoom ?? DEFAULT_ZOOM);
     this._targetZoom = this._zoom;
     this._smoothing = options.smoothing ?? DEFAULT_SMOOTHING;
@@ -58,12 +58,12 @@ export class Camera {
     this._applyTransform();
   }
 
-  public get x(): number {
-    return this._x;
+  public get centerX(): number {
+    return this._centerX;
   }
 
-  public get y(): number {
-    return this._y;
+  public get centerY(): number {
+    return this._centerY;
   }
 
   public get zoom(): number {
@@ -89,23 +89,26 @@ export class Camera {
     this._applyTransform();
   }
 
-  public jumpTo(x: number, y: number): void {
-    this._x = x;
-    this._y = y;
-    this._targetX = x;
-    this._targetY = y;
+  public jumpToCenter(centerX: number, centerY: number): void {
+    this._centerX = centerX;
+    this._centerY = centerY;
+    this._targetCenterX = centerX;
+    this._targetCenterY = centerY;
     this._clampPosition();
     this._applyTransform();
   }
 
-  public moveTo(x: number, y: number): void {
-    this._targetX = x;
-    this._targetY = y;
+  public moveToCenter(centerX: number, centerY: number): void {
+    this._targetCenterX = centerX;
+    this._targetCenterY = centerY;
     this._clampTargetPosition();
   }
 
   public panByWorld(deltaX: number, deltaY: number): void {
-    this.moveTo(this._targetX + deltaX, this._targetY + deltaY);
+    this.moveToCenter(
+      this._targetCenterX + deltaX,
+      this._targetCenterY + deltaY,
+    );
   }
 
   public panByScreen(deltaX: number, deltaY: number): void {
@@ -132,13 +135,17 @@ export class Camera {
   ): void {
     const nextZoom = this._clampZoom(zoom);
     const worldX =
-      this._targetX + (screenX - this._viewportWidth * 0.5) / this._targetZoom;
+      this._targetCenterX +
+      (screenX - this._viewportWidth * 0.5) / this._targetZoom;
     const worldY =
-      this._targetY + (screenY - this._viewportHeight * 0.5) / this._targetZoom;
+      this._targetCenterY +
+      (screenY - this._viewportHeight * 0.5) / this._targetZoom;
 
     this._targetZoom = nextZoom;
-    this._targetX = worldX - (screenX - this._viewportWidth * 0.5) / nextZoom;
-    this._targetY = worldY - (screenY - this._viewportHeight * 0.5) / nextZoom;
+    this._targetCenterX =
+      worldX - (screenX - this._viewportWidth * 0.5) / nextZoom;
+    this._targetCenterY =
+      worldY - (screenY - this._viewportHeight * 0.5) / nextZoom;
     this._clampTargetPosition();
   }
 
@@ -157,10 +164,10 @@ export class Camera {
     const halfHeight = this._viewportHeight / (2 * this._zoom);
 
     return {
-      minX: Math.max(MIN_WORLD_COORDINATE, this._x - halfWidth - margin),
-      minY: Math.max(MIN_WORLD_COORDINATE, this._y - halfHeight - margin),
-      maxX: Math.min(this._maxX, this._x + halfWidth + margin),
-      maxY: Math.min(this._maxY, this._y + halfHeight + margin),
+      minX: Math.max(MIN_WORLD_COORDINATE, this._centerX - halfWidth - margin),
+      minY: Math.max(MIN_WORLD_COORDINATE, this._centerY - halfHeight - margin),
+      maxX: Math.min(this._maxX, this._centerX + halfWidth + margin),
+      maxY: Math.min(this._maxY, this._centerY + halfHeight + margin),
     };
   }
 
@@ -169,8 +176,8 @@ export class Camera {
     const alpha =
       this._smoothing <= 0 ? 1 : 1 - Math.exp(-this._smoothing * deltaSeconds);
 
-    this._x = this._approach(this._x, this._targetX, alpha);
-    this._y = this._approach(this._y, this._targetY, alpha);
+    this._centerX = this._approach(this._centerX, this._targetCenterX, alpha);
+    this._centerY = this._approach(this._centerY, this._targetCenterY, alpha);
     this._zoom = this._approach(this._zoom, this._targetZoom, alpha);
     this._clampPosition();
 
@@ -186,8 +193,8 @@ export class Camera {
   private _applyTransform(): void {
     this.world.scale.set(this._zoom);
     this.world.position.set(
-      this._viewportWidth * 0.5 - this._x * this._zoom,
-      this._viewportHeight * 0.5 - this._y * this._zoom,
+      this._viewportWidth * 0.5 - this._centerX * this._zoom,
+      this._viewportHeight * 0.5 - this._centerY * this._zoom,
     );
   }
 
@@ -195,14 +202,14 @@ export class Camera {
     this._zoom = this._clampZoom(this._zoom);
     this._targetZoom = this._clampZoom(this._targetZoom);
     this._clampTargetPosition();
-    this._x = this._clampCoordinate(
-      this._x,
+    this._centerX = this._clampCoordinate(
+      this._centerX,
       this._zoom,
       this._viewportWidth,
       this._maxX,
     );
-    this._y = this._clampCoordinate(
-      this._y,
+    this._centerY = this._clampCoordinate(
+      this._centerY,
       this._zoom,
       this._viewportHeight,
       this._maxY,
@@ -210,14 +217,14 @@ export class Camera {
   }
 
   private _clampTargetPosition(): void {
-    this._targetX = this._clampCoordinate(
-      this._targetX,
+    this._targetCenterX = this._clampCoordinate(
+      this._targetCenterX,
       this._targetZoom,
       this._viewportWidth,
       this._maxX,
     );
-    this._targetY = this._clampCoordinate(
-      this._targetY,
+    this._targetCenterY = this._clampCoordinate(
+      this._targetCenterY,
       this._targetZoom,
       this._viewportHeight,
       this._maxY,

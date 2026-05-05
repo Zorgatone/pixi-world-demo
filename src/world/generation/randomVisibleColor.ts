@@ -1,4 +1,4 @@
-import { randInt } from "./randInt";
+import { randInt } from "../../utils/randInt";
 
 const WHITE = 0xffffff;
 const COLOR_COUNT = WHITE + 1;
@@ -7,7 +7,7 @@ const COLOR_CHANNEL_MAX = 255;
 const MIN_VISIBLE_LUMINANCE = 0.18;
 const MAX_RANDOM_COLOR_ATTEMPTS = 16;
 
-export function randColor(random: () => number): number {
+export function randomVisibleColor(random: () => number): number {
   for (let i = 0; i < MAX_RANDOM_COLOR_ATTEMPTS; i += 1) {
     const color = randInt(random, COLOR_COUNT);
 

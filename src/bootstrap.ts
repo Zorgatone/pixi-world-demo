@@ -1,6 +1,6 @@
 import { Root } from "./Root";
-import { generateTextures, TextureCache } from "./textures";
-import { ShapeObj } from "./types/ShapeObj";
+import { createShapeTextures, ShapeTextureCache } from "./textures";
+import { ShapeData } from "./types/ShapeData";
 import { WORLD_HEIGHT, WORLD_WIDTH } from "./constants";
 import { generateWorldData } from "./world/generateWorldData";
 import { ShapeRenderLayer } from "./world/ShapeRenderLayer";
@@ -19,27 +19,27 @@ async function setupRoot(): Promise<Root> {
   return root;
 }
 
-function generateData(): ShapeObj[] {
+function generateData(): ShapeData[] {
   const params = new URLSearchParams(window.location.search);
   const seed = params.get("seed") || "seed";
 
   return generateWorldData(seed);
 }
 
-function makeTextures(root: Root): Readonly<TextureCache> {
+function makeTextures(root: Root): Readonly<ShapeTextureCache> {
   const app = root.app;
 
-  return generateTextures(app.renderer.generateTexture.bind(app.renderer));
+  return createShapeTextures(app.renderer.generateTexture.bind(app.renderer));
 }
 
 function setupScene(
   root: Root,
-  textureCache: Readonly<TextureCache>,
-  data: ShapeObj[],
+  textureCache: Readonly<ShapeTextureCache>,
+  data: ShapeData[],
 ): void {
   const shapeLayer = new ShapeRenderLayer(textureCache, data);
 
-  root.camera.jumpTo(WORLD_WIDTH / 2, WORLD_HEIGHT / 2);
+  root.camera.jumpToCenter(WORLD_WIDTH / 2, WORLD_HEIGHT / 2);
   root.setShapeLayer(shapeLayer);
 }
 

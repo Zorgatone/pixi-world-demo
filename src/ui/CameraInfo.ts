@@ -43,7 +43,7 @@ export class CameraInfo {
 
   private _updateText(): void {
     this.view.text =
-      `Camera: ${this._camera.x.toFixed(2)}, ${this._camera.y.toFixed(2)}\n` +
+      `Camera: ${this._camera.centerX.toFixed(2)}, ${this._camera.centerY.toFixed(2)}\n` +
       `Zoom: ${this._camera.zoom.toFixed(2)}x`;
   }
 }

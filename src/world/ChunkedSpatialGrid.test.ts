@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vitest";
 
 import { CHUNK_SIZE, MAX_OBJECT_SIZE } from "../constants";
-import { ShapeObj } from "../types/ShapeObj";
-import { TextureName } from "../types/TextureName";
+import { ShapeData } from "../types/ShapeData";
+import { ShapeKind } from "../types/ShapeKind";
 import { ChunkedSpatialGrid, type SpatialBounds } from "./ChunkedSpatialGrid";
 
-function createShape(x: number, y: number, size: number): ShapeObj {
+function createShape(x: number, y: number, size: number): ShapeData {
   return {
     x: x,
     y: y,
-    kind: TextureName.SQUARE,
+    kind: ShapeKind.SQUARE,
     color: 0xffffff,
     width: size,
     height: size,

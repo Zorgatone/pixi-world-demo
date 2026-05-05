@@ -20,8 +20,8 @@ interface WorldGridState {
   maxColumn: number;
   minRow: number;
   maxRow: number;
-  cameraX: number;
-  cameraY: number;
+  cameraCenterX: number;
+  cameraCenterY: number;
   zoom: number;
   resolution: number;
   viewportWidth: number;
@@ -69,25 +69,25 @@ export class WorldGrid {
     const viewportHeight = camera.viewportHeight;
     const leftEdgeX = this._projectWorldX(
       0,
-      camera.x,
+      camera.centerX,
       camera.zoom,
       viewportWidth,
     );
     const rightEdgeX = this._projectWorldX(
       WORLD_WIDTH,
-      camera.x,
+      camera.centerX,
       camera.zoom,
       viewportWidth,
     );
     const topEdgeY = this._projectWorldY(
       0,
-      camera.y,
+      camera.centerY,
       camera.zoom,
       viewportHeight,
     );
     const bottomEdgeY = this._projectWorldY(
       WORLD_HEIGHT,
-      camera.y,
+      camera.centerY,
       camera.zoom,
       viewportHeight,
     );
@@ -101,8 +101,8 @@ export class WorldGrid {
       maxColumn: maxColumn,
       minRow: minRow,
       maxRow: maxRow,
-      cameraX: camera.x,
-      cameraY: camera.y,
+      cameraCenterX: camera.centerX,
+      cameraCenterY: camera.centerY,
       zoom: camera.zoom,
       resolution: resolution,
       viewportWidth: viewportWidth,
@@ -130,8 +130,8 @@ export class WorldGrid {
       state.showRightEdge === nextState.showRightEdge &&
       state.showTopEdge === nextState.showTopEdge &&
       state.showBottomEdge === nextState.showBottomEdge &&
-      this._isSameNumber(state.cameraX, nextState.cameraX) &&
-      this._isSameNumber(state.cameraY, nextState.cameraY) &&
+      this._isSameNumber(state.cameraCenterX, nextState.cameraCenterX) &&
+      this._isSameNumber(state.cameraCenterY, nextState.cameraCenterY) &&
       this._isSameNumber(state.zoom, nextState.zoom) &&
       this._isSameNumber(state.resolution, nextState.resolution) &&
       this._isSameNumber(state.viewportWidth, nextState.viewportWidth) &&
@@ -208,7 +208,7 @@ export class WorldGrid {
     return this._snapToPhysicalPixel(
       this._projectWorldX(
         worldX,
-        state.cameraX,
+        state.cameraCenterX,
         state.zoom,
         state.viewportWidth,
       ),
@@ -220,7 +220,7 @@ export class WorldGrid {
     return this._snapToPhysicalPixel(
       this._projectWorldY(
         worldY,
-        state.cameraY,
+        state.cameraCenterY,
         state.zoom,
         state.viewportHeight,
       ),
@@ -230,20 +230,20 @@ export class WorldGrid {
 
   private _projectWorldX(
     worldX: number,
-    cameraX: number,
+    cameraCenterX: number,
     zoom: number,
     viewportWidth: number,
   ): number {
-    return (worldX - cameraX) * zoom + viewportWidth * 0.5;
+    return (worldX - cameraCenterX) * zoom + viewportWidth * 0.5;
   }
 
   private _projectWorldY(
     worldY: number,
-    cameraY: number,
+    cameraCenterY: number,
     zoom: number,
     viewportHeight: number,
   ): number {
-    return (worldY - cameraY) * zoom + viewportHeight * 0.5;
+    return (worldY - cameraCenterY) * zoom + viewportHeight * 0.5;
   }
 
   private _isStrokeVisible(coordinate: number, viewportSize: number): boolean {

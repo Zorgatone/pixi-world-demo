@@ -5,7 +5,7 @@ import {
   MAX_TEXTURE_DEVICE_PIXEL_RATIO,
   MAX_ZOOM,
 } from "./constants";
-import { TextureName } from "./types/TextureName";
+import { ShapeKind } from "./types/ShapeKind";
 
 const WHITE = 0xffffff;
 const SHAPE_TEXTURE_SIZE = MAX_OBJECT_SIZE * MAX_ZOOM;
@@ -48,7 +48,7 @@ type TextureRenderFunction = (options: {
   antialias: boolean;
 }) => Texture;
 
-export type TextureCache = Record<TextureName, Texture>;
+export type ShapeTextureCache = Record<ShapeKind, Texture>;
 
 function createTexture(
   graphics: Graphics,
@@ -62,47 +62,25 @@ function createTexture(
   });
 }
 
-function _generateTextures(
+export function createShapeTextures(
   renderTextureFn: TextureRenderFunction,
-): Readonly<TextureCache> {
+): Readonly<ShapeTextureCache> {
   const graphics = new Graphics();
 
-  const cache: TextureCache = Object.create(null) as TextureCache;
+  const cache: ShapeTextureCache = Object.create(null) as ShapeTextureCache;
 
   renderCircle(graphics);
-  cache[TextureName.CIRCLE] = createTexture(graphics, renderTextureFn);
+  cache[ShapeKind.CIRCLE] = createTexture(graphics, renderTextureFn);
   graphics.clear();
 
   renderSquare(graphics);
-  cache[TextureName.SQUARE] = createTexture(graphics, renderTextureFn);
+  cache[ShapeKind.SQUARE] = createTexture(graphics, renderTextureFn);
   graphics.clear();
 
   renderTriangle(graphics);
-  cache[TextureName.TRIANGLE] = createTexture(graphics, renderTextureFn);
+  cache[ShapeKind.TRIANGLE] = createTexture(graphics, renderTextureFn);
 
   graphics.destroy();
 
   return Object.freeze(cache);
-}
-
-let _textureCache: Readonly<TextureCache> | undefined;
-
-export function generateTextures(
-  renderTextureFn: TextureRenderFunction,
-): Readonly<TextureCache> {
-  if (_textureCache) {
-    throw new Error("Texture cache already present!");
-  }
-
-  _textureCache = _generateTextures(renderTextureFn);
-
-  return _textureCache;
-}
-
-export function getTextureCache(): Readonly<TextureCache> {
-  if (!_textureCache) {
-    throw new Error("Texture cache is not initialized!");
-  }
-
-  return _textureCache;
 }

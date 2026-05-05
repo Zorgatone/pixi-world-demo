@@ -5,11 +5,11 @@ import {
   WORLD_HEIGHT,
   WORLD_WIDTH,
 } from "../constants";
-import { ShapeObj } from "../types/ShapeObj";
+import { ShapeData } from "../types/ShapeData";
 import { hashSeed } from "../utils/hashSeed";
 import { createPrng } from "../utils/prng";
 import { randInt } from "../utils/randInt";
-import { randShapeObj } from "../utils/randShapeObj";
+import { createRandomShape } from "./generation/createRandomShape";
 
 export const SPAWN_GRID_COLUMNS = Math.floor(WORLD_WIDTH / SPAWN_CELL_SIZE);
 export const SPAWN_GRID_ROWS = Math.floor(WORLD_HEIGHT / SPAWN_CELL_SIZE);
@@ -50,7 +50,7 @@ function takeRandomSpawnCell(
   return cell;
 }
 
-function positionShapeInCell(shape: ShapeObj, cell: number): void {
+function positionShapeInCell(shape: ShapeData, cell: number): void {
   const cellX = cell % SPAWN_GRID_COLUMNS;
   const cellY = Math.floor(cell / SPAWN_GRID_COLUMNS);
 
@@ -61,14 +61,14 @@ function positionShapeInCell(shape: ShapeObj, cell: number): void {
 export function generateWorldData(
   seed = "seed",
   objectCount = OBJECT_COUNT,
-): ShapeObj[] {
+): ShapeData[] {
   const random = createPrng(hashSeed(seed));
-  const nextShapeObj = () => randShapeObj(random);
+  const nextShape = () => createRandomShape(random);
   const spawnCells = createSpawnCells(objectCount);
-  const data = new Array<ShapeObj>(objectCount);
+  const data = new Array<ShapeData>(objectCount);
 
   for (let i = 0, len = data.length; i < len; i += 1) {
-    const shape = nextShapeObj();
+    const shape = nextShape();
     const cell = takeRandomSpawnCell(spawnCells, i, random);
 
     positionShapeInCell(shape, cell);

@@ -40,7 +40,7 @@ Other useful npm script you can run is `npm run prettify` to format files after 
 
 You can run a production build using `npm run build`, the assets will be in the `dist` folder (which is listed in `.gitignore` and won't be committed).
 
-New changes pushed to the `main` branch will trigger a Github Actions pipeline (defined in the `.github/workflows/pages.yaml` file) that runs the build pipeline and deploys the game demo using Github Pages.
+New changes pushed to the `main` branch will trigger a Github Actions pipeline (defined in the `.github/workflows/pages.yml` file) that runs the build pipeline and deploys the game demo using Github Pages.
 
 This project uses [Volta](https://volta.sh) as a [Node](https://nodejs.org/) version manager, and it's set to use the LTS version available at the time of writing (ie. Node 22).
 
@@ -48,7 +48,7 @@ This project uses [Volta](https://volta.sh) as a [Node](https://nodejs.org/) ver
 
 Random shapes with random sizes and colors are generated from a repeatable seed, the seed can be changed in the query-string. For example:
 
-1. [http://http://localhost:8080/?seed=banana](http://http://localhost:8080/?seed=banana) for localhost
+1. [http://localhost:8080/?seed=banana](http://localhost:8080/?seed=banana) for localhost
 2. [https://zorgatone.github.io/pixi-world-demo/?seed=banana](https://zorgatone.github.io/pixi-world-demo/?seed=banana) for the version deployed on GitHub Pages
 
 ## VS Code tips

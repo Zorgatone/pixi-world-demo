@@ -2,8 +2,8 @@ import { Container, Sprite } from "pixi.js";
 
 import { Camera } from "../camera/Camera";
 import { CHUNK_SIZE } from "../constants";
-import { TextureCache } from "../textures";
-import { ShapeObj } from "../types/ShapeObj";
+import { ShapeTextureCache } from "../textures";
+import { ShapeData } from "../types/ShapeData";
 import { ChunkedSpatialGrid, type SpatialBounds } from "./ChunkedSpatialGrid";
 
 const VISIBILITY_MARGIN = CHUNK_SIZE;
@@ -21,18 +21,18 @@ export interface ShapeRenderStats {
 export class ShapeRenderLayer {
   public readonly view: Container;
 
-  private readonly _textures: Readonly<TextureCache>;
+  private readonly _textures: Readonly<ShapeTextureCache>;
   private readonly _spatialGrid: ChunkedSpatialGrid;
-  private readonly _queryResults: ShapeObj[];
-  private readonly _queryResultSet: Set<ShapeObj>;
-  private readonly _activeSprites: Map<ShapeObj, Sprite>;
+  private readonly _queryResults: ShapeData[];
+  private readonly _queryResultSet: Set<ShapeData>;
+  private readonly _activeSprites: Map<ShapeData, Sprite>;
   private readonly _spritePool: Sprite[];
   private readonly _stats: ShapeRenderStats;
   private _lastBounds?: SpatialBounds;
 
   public constructor(
-    textures: Readonly<TextureCache>,
-    objects: readonly ShapeObj[],
+    textures: Readonly<ShapeTextureCache>,
+    objects: readonly ShapeData[],
   ) {
     this.view = new Container();
     this._textures = textures;
@@ -129,7 +129,7 @@ export class ShapeRenderLayer {
     return this._spritePool.pop() ?? new Sprite();
   }
 
-  private _applyObjectToSprite(object: ShapeObj, sprite: Sprite): void {
+  private _applyObjectToSprite(object: ShapeData, sprite: Sprite): void {
     sprite.texture = this._textures[object.kind];
     sprite.anchor.set(0.5, 0.5);
     sprite.tint = object.color;
