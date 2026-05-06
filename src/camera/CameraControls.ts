@@ -17,9 +17,9 @@ export class CameraControls {
     });
 
     window.addEventListener("blur", this._resetInput);
-    window.addEventListener("focus", this._resetInput);
+    window.addEventListener("focus", this._resetInputAfterFocus);
     window.addEventListener("pagehide", this._resetInput);
-    window.addEventListener("pageshow", this._resetInput);
+    window.addEventListener("pageshow", this._resetInputAfterFocus);
     document.addEventListener("visibilitychange", this._onVisibilityChange);
   }
 
@@ -27,9 +27,9 @@ export class CameraControls {
     this._keyboardControls.destroy();
     this._pointerControls.destroy();
     window.removeEventListener("blur", this._resetInput);
-    window.removeEventListener("focus", this._resetInput);
+    window.removeEventListener("focus", this._resetInputAfterFocus);
     window.removeEventListener("pagehide", this._resetInput);
-    window.removeEventListener("pageshow", this._resetInput);
+    window.removeEventListener("pageshow", this._resetInputAfterFocus);
     document.removeEventListener("visibilitychange", this._onVisibilityChange);
   }
 
@@ -46,6 +46,11 @@ export class CameraControls {
   private readonly _resetInput = (): void => {
     this._keyboardControls.reset();
     this._pointerControls.cancelInteraction();
+  };
+
+  private readonly _resetInputAfterFocus = (): void => {
+    this._resetInput();
+    this._pointerControls.allowFocusRecoveredMouseDrag();
   };
 
   private readonly _onVisibilityChange = (): void => {

@@ -9,6 +9,7 @@ const FLING_DECAY_RATE = 4.8;
 const MIN_FLING_SPEED = 8;
 const MAX_FLING_SPEED = 3600;
 const RELEASED_MOUSE_MOVE_FLING_GRACE_MS = 160;
+const FOCUS_RECOVERED_MOUSE_DRAG_MS = 1000;
 
 interface PointerState {
   x: number;
@@ -36,6 +37,7 @@ export class CameraPointerControls {
   private _pinchCenterX: number;
   private _pinchCenterY: number;
   private _didPinch: boolean;
+  private _recoverMissingMouseDownUntil: number;
 
   public constructor(
     app: Application,
@@ -56,6 +58,7 @@ export class CameraPointerControls {
     this._pinchCenterX = 0;
     this._pinchCenterY = 0;
     this._didPinch = false;
+    this._recoverMissingMouseDownUntil = 0;
 
     this._app.canvas.addEventListener("pointerdown", this._onPointerDown);
     this._app.canvas.addEventListener("pointermove", this._onPointerMove);
@@ -90,6 +93,11 @@ export class CameraPointerControls {
     this._flingVelocityY = 0;
   }
 
+  public allowFocusRecoveredMouseDrag(): void {
+    this._recoverMissingMouseDownUntil =
+      performance.now() + FOCUS_RECOVERED_MOUSE_DRAG_MS;
+  }
+
   public cancelInteraction(): void {
     for (const pointerId of this._pointers.keys()) {
       if (this._app.canvas.hasPointerCapture(pointerId)) {
@@ -103,6 +111,7 @@ export class CameraPointerControls {
     this._didPinch = false;
     this._dragVelocityX = 0;
     this._dragVelocityY = 0;
+    this._recoverMissingMouseDownUntil = 0;
   }
 
   private readonly _onPointerDown = (event: PointerEvent): void => {
@@ -111,6 +120,7 @@ export class CameraPointerControls {
     }
 
     this.stopFling();
+    this._recoverMissingMouseDownUntil = 0;
     this._options.onInteractionStart();
     this._activePointerId = event.pointerId;
     const point = this._getCanvasPoint(event);
@@ -135,7 +145,9 @@ export class CameraPointerControls {
 
   private readonly _onPointerMove = (event: PointerEvent): void => {
     if (!this._pointers.has(event.pointerId)) {
-      return;
+      if (!this._tryRecoverMissingMouseDown(event)) {
+        return;
+      }
     }
 
     if (this._isReleasedMouseMove(event)) {
@@ -327,6 +339,53 @@ export class CameraPointerControls {
 
   private _isReleasedMouseMove(event: PointerEvent): boolean {
     return event.pointerType === "mouse" && event.buttons === 0;
+  }
+
+  private _tryRecoverMissingMouseDown(event: PointerEvent): boolean {
+    if (!this._canRecoverMissingMouseDown(event)) {
+      return false;
+    }
+
+    this.stopFling();
+    this._recoverMissingMouseDownUntil = 0;
+    this._options.onInteractionStart();
+
+    const point = this._getCanvasPoint(event);
+
+    this._activePointerId = event.pointerId;
+    this._pointers.set(event.pointerId, point);
+    this._lastPointerX = point.x;
+    this._lastPointerY = point.y;
+    this._lastPointerTime = performance.now();
+    this._dragVelocityX = 0;
+    this._dragVelocityY = 0;
+    this._pinchDistance = undefined;
+    this._didPinch = false;
+    this._trySetPointerCapture(event.pointerId);
+    event.preventDefault();
+
+    return true;
+  }
+
+  private _canRecoverMissingMouseDown(event: PointerEvent): boolean {
+    return (
+      event.pointerType === "mouse" &&
+      event.isPrimary &&
+      (event.buttons & 1) === 1 &&
+      performance.now() <= this._recoverMissingMouseDownUntil
+    );
+  }
+
+  private _trySetPointerCapture(pointerId: number): void {
+    if (this._app.canvas.hasPointerCapture(pointerId)) {
+      return;
+    }
+
+    try {
+      this._app.canvas.setPointerCapture(pointerId);
+    } catch {
+      // Some browsers may not allow capture when recovering after a missed down.
+    }
   }
 
   private _handleReleasedMouseMove(event: PointerEvent): void {
