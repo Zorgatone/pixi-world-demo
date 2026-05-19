@@ -19,7 +19,7 @@ export class CameraKeyboardControls {
 
   public constructor(camera: Camera) {
     this._camera = camera;
-    this._pressedKeys = new Set();
+    this._pressedKeys = new Set<string>();
     this._keyboardVelocityX = 0;
     this._keyboardVelocityY = 0;
 

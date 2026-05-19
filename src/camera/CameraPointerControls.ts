@@ -47,7 +47,7 @@ export class CameraPointerControls {
     this._app = app;
     this._camera = camera;
     this._options = options;
-    this._pointers = new Map();
+    this._pointers = new Map<number, PointerState>();
     this._lastPointerX = 0;
     this._lastPointerY = 0;
     this._lastPointerTime = 0;

@@ -70,7 +70,7 @@ export class ShapeTextureCache {
 
     this._isDestroyed = true;
 
-    for (const texture of new Set(Object.values(this._textures))) {
+    for (const texture of new Set<Texture>(Object.values(this._textures))) {
       texture.destroy(true);
     }
   }

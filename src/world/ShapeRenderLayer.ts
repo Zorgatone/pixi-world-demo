@@ -40,8 +40,8 @@ export class ShapeRenderLayer {
     this._textures = textures;
     this._spatialGrid = new ChunkedSpatialGrid(objects);
     this._queryResults = [];
-    this._queryResultSet = new Set();
-    this._activeSprites = new Map();
+    this._queryResultSet = new Set<ShapeData>();
+    this._activeSprites = new Map<ShapeData, Sprite>();
     this._spritePool = [];
     this._stats = {
       totalObjects: objects.length,
